@@ -75,6 +75,7 @@ export interface LeagueSettings {
     C: number;
     A: number;
   };
+  geminiApiKey?: string;       // Chiave API opzionale per Google AI Studio (Free Tier)
 }
 
 export interface SquadSlot {
