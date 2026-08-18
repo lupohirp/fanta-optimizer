@@ -66,18 +66,34 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiTacticalReview, setAiTacticalReview] = useState<{ text: string; model?: string } | null>(null);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount and preserve user custom prices
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_CUSTOM_SQUAD_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.P && parsed.D && parsed.C && parsed.A) {
+          const mapSlot = (sp: Player | null) => {
+            if (!sp) return null;
+            const base = allPlayers.find(p => p.id === sp.id);
+            if (!base) return sp;
+            if (sp.isCustomPrice || base.isCustomPrice) {
+              const cust500 = sp.isCustomPrice ? (sp.estimatedPrice500 || sp.avgAuctionPrice500) : (base.estimatedPrice500 || base.avgAuctionPrice500);
+              return {
+                ...base,
+                estimatedPrice500: cust500,
+                avgAuctionPrice500: cust500,
+                isCustomPrice: true
+              };
+            }
+            return base;
+          };
+
           const mappedSlots = {
-            P: parsed.P.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null),
-            D: parsed.D.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null),
-            C: parsed.C.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null),
-            A: parsed.A.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null)
+            P: parsed.P.map(mapSlot),
+            D: parsed.D.map(mapSlot),
+            C: parsed.C.map(mapSlot),
+            A: parsed.A.map(mapSlot)
           };
           setSelectedSlots(mappedSlots);
         }

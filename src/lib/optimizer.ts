@@ -21,6 +21,12 @@ export function calculateDynamicPrice(
   // Fattore di scarsità basato sul numero di squadre nella lega
   const scarcityFactor = participants >= 12 ? 1.25 : participants >= 10 ? 1.12 : participants === 6 ? 0.88 : 1.0;
 
+  // Se l'utente ha impostato un valore custom personalizzato, usalo esattamente
+  if (player.isCustomPrice && (player.estimatedPrice500 !== undefined || player.avgAuctionPrice500 !== undefined)) {
+    const custom500 = player.estimatedPrice500 ?? player.avgAuctionPrice500 ?? 1;
+    return Math.max(1, Math.round(custom500 * budgetRatio));
+  }
+
   // Prezzo base sul listino a 500
   let price500 = player.estimatedPrice500 || player.quotation || 1;
 
