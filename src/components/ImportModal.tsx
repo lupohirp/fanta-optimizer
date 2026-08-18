@@ -12,7 +12,9 @@ import {
   RefreshCw, 
   Link2,
   X,
-  Radio
+  Download,
+  ExternalLink,
+  Info
 } from 'lucide-react';
 
 interface ImportModalProps {
@@ -30,7 +32,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   onResetDefault,
   currentPlayersCount
 }) => {
-  const [activeTab, setActiveTab] = useState<'file' | 'link'>('file');
+  const [activeTab, setActiveTab] = useState<'file' | 'link' | 'download_info'>('file');
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -120,9 +122,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               <FileSpreadsheet size={22} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Listino & Auto-Aggiornamento</h3>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Listino Ufficiale & Download</h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                Carica un file Excel oppure collega un feed online in tempo reale
+                Scarica o carica il file Excel/CSV con tutti i calciatori di Serie A
               </p>
             </div>
           </div>
@@ -132,16 +134,17 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           </button>
         </div>
 
-        {/* Tab switch File vs Live URL */}
+        {/* Tab switch */}
         {!previewPlayers && (
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', background: 'var(--bg-input)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '18px', background: 'var(--bg-input)', padding: '4px', borderRadius: 'var(--radius-md)', flexWrap: 'wrap' }}>
             <button
               onClick={() => setActiveTab('file')}
               style={{
                 flex: 1,
+                minWidth: '130px',
                 padding: '8px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '0.85rem',
+                fontSize: '0.82rem',
                 fontWeight: 700,
                 background: activeTab === 'file' ? 'var(--bg-card)' : 'transparent',
                 color: activeTab === 'file' ? '#fff' : 'var(--text-secondary)',
@@ -153,17 +156,41 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 gap: '6px'
               }}
             >
-              <FileSpreadsheet size={15} />
-              <span>Carica File (.xlsx / .csv)</span>
+              <UploadCloud size={14} />
+              <span>Carica File (.xlsx/.csv)</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('download_info')}
+              style={{
+                flex: 1,
+                minWidth: '130px',
+                padding: '8px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                background: activeTab === 'download_info' ? 'var(--bg-card)' : 'transparent',
+                color: activeTab === 'download_info' ? '#fff' : 'var(--text-secondary)',
+                border: activeTab === 'download_info' ? '1px solid var(--border-subtle)' : 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <Download size={14} style={{ color: 'var(--accent-gold)' }} />
+              <span>Dove Scaricare il File</span>
             </button>
 
             <button
               onClick={() => setActiveTab('link')}
               style={{
                 flex: 1,
+                minWidth: '130px',
                 padding: '8px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '0.85rem',
+                fontSize: '0.82rem',
                 fontWeight: 700,
                 background: activeTab === 'link' ? 'var(--bg-card)' : 'transparent',
                 color: activeTab === 'link' ? '#fff' : 'var(--text-secondary)',
@@ -175,8 +202,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 gap: '6px'
               }}
             >
-              <Link2 size={15} />
-              <span>Feed Live URL (Google Sheet)</span>
+              <Link2 size={14} />
+              <span>Feed Live URL</span>
             </button>
           </div>
         )}
@@ -184,7 +211,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         {/* Content based on Tab */}
         {!previewPlayers ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {activeTab === 'file' ? (
+            {activeTab === 'file' && (
               <div
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                 onDragLeave={() => setIsDragging(false)}
@@ -214,12 +241,56 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                       Trascina qui il file Excel/CSV o clicca per sfogliare
                     </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      Supporta i file ufficiali di <strong>Fantacalcio.it</strong> (Quotazioni_Fantacalcio_*.xlsx)
+                      Supporta il file ufficiale di <strong>Fantacalcio.it</strong> (Quotazioni_Fantacalcio_*.xlsx)
                     </div>
                   </div>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {activeTab === 'download_info' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', background: 'var(--bg-input)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                  <Info size={18} style={{ color: 'var(--accent-emerald-light)', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      Come scaricare il file ufficiale da Fantacalcio.it:
+                    </h4>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px', lineHeight: 1.5 }}>
+                      1. Vai sul sito ufficiale di <strong>Fantacalcio.it</strong> alla sezione <em>Quotazioni</em>.<br />
+                      2. In alto a destra troverai il pulsante <strong>"Scarica Excel"</strong> (o CSV).<br />
+                      3. Trascina poi quel file qui dentro nella scheda <strong>"Carica File"</strong>!
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
+                  <a
+                    href="https://www.fantacalcio.it/quotazioni-fantacalcio"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary"
+                    style={{ padding: '10px 16px', fontSize: '0.85rem', gap: '6px' }}
+                  >
+                    <ExternalLink size={15} />
+                    <span>Apri Pagina Quotazioni Fantacalcio.it</span>
+                  </a>
+
+                  <a
+                    href="https://www.gazzetta.it/calcio/fantanews/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary"
+                    style={{ padding: '10px 16px', fontSize: '0.85rem', gap: '6px' }}
+                  >
+                    <ExternalLink size={15} />
+                    <span>Listone Gazzetta dello Sport</span>
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'link' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                   Collega un <strong>Google Sheet pubblicato come CSV</strong> o un endpoint web per sincronizzare automaticamente le modifiche della tua lega o del listone:
