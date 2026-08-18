@@ -275,34 +275,60 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </a>
         </div>
 
-        <div style={{ position: 'relative', maxWidth: '540px' }}>
-          <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-            <KeyRound size={15} />
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginTop: '10px' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '260px', maxWidth: '540px' }}>
+            <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+              <KeyRound size={15} />
+            </div>
+            <input
+              type={showApiKey ? 'text' : 'password'}
+              placeholder="Incolla qui la tua API Key di Google AI Studio (opzionale)"
+              value={settings.geminiApiKey || ''}
+              onChange={(e) => handleApiKeyChange(e.target.value)}
+              style={{
+                width: '100%',
+                background: 'var(--bg-input)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: '8px 36px 8px 34px',
+                color: 'var(--text-primary)',
+                fontSize: '0.85rem',
+                fontFamily: 'var(--font-mono)'
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowApiKey(!showApiKey)}
+              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              title={showApiKey ? 'Nascondi' : 'Mostra'}
+            >
+              {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
           </div>
-          <input
-            type={showApiKey ? 'text' : 'password'}
-            placeholder="Incolla qui la tua API Key di Google AI Studio (opzionale)"
-            value={settings.geminiApiKey || ''}
-            onChange={(e) => handleApiKeyChange(e.target.value)}
-            style={{
-              width: '100%',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              padding: '8px 36px 8px 34px',
-              color: 'var(--text-primary)',
-              fontSize: '0.85rem',
-              fontFamily: 'var(--font-mono)'
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => setShowApiKey(!showApiKey)}
-            style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-            title={showApiKey ? 'Nascondi' : 'Mostra'}
-          >
-            {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
-          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Modello:</span>
+            <select
+              value={settings.geminiModel || 'gemini-3.5-flash-lite'}
+              onChange={(e) => setSettings(prev => ({ ...prev, geminiModel: e.target.value }))}
+              style={{
+                background: 'var(--bg-input)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: '7px 10px',
+                color: 'var(--accent-emerald-light)',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                fontFamily: 'var(--font-mono)'
+              }}
+            >
+              <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Consigliato)</option>
+              <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+              <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+              <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+            </select>
+          </div>
         </div>
       </div>
 

@@ -282,6 +282,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           apiKey,
+          model: settings.geminiModel || 'gemini-3.5-flash-lite',
           selectedSlots,
           remainingBudget,
           totalBudget,
