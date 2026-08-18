@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Player, Role, LeagueSettings, GeneratedSquad } from '../types';
-import { calculateDynamicPrice } from '../lib/optimizer';
+import { calculateDynamicPrice, optimizeSquad } from '../lib/optimizer';
 import { 
   Plus, 
   Trash2, 
@@ -24,7 +24,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 
-const STORAGE_CUSTOM_SQUAD_KEY = 'fanta_optimizer_custom_squad_state_v1';
+const STORAGE_CUSTOM_SQUAD_KEY = 'fanta_optimizer_custom_squad_state_v2';
 
 interface CustomSquadBuilderProps {
   allPlayers: Player[];
@@ -56,8 +56,6 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     A: [null, null, null, null, null, null]
   });
 
-  const [saveToast, setSaveToast] = useState(false);
-
   // Load from localStorage on mount
   useEffect(() => {
     try {
@@ -65,7 +63,6 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.P && parsed.D && parsed.C && parsed.A) {
-          // Re-map players to current dataset in case of updates
           const mappedSlots = {
             P: parsed.P.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null),
             D: parsed.D.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null),
@@ -192,7 +189,6 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
 
       let nextPList = [...prev.P];
       if (activePickerRole === 'P' && autoFillSameTeamKeepers) {
-        // Find same team backups
         const teamKeepers = allPlayers
           .filter(p => p.role === 'P' && p.team === player.team && p.id !== player.id)
           .sort((a, b) => calculateDynamicPrice(a, totalBudget, participants) - calculateDynamicPrice(b, totalBudget, participants));
@@ -241,84 +237,39 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     });
   };
 
-  // Magic Autocomplete: Fills all empty slots with optimal players for the remaining budget
+  // Magic Autocomplete: Uses the AI Optimizer engine with current chosen players as pinned
   const handleMagicFill = () => {
-    let budgetLeft = remainingBudget;
-    const nextSlots = {
-      P: [...selectedSlots.P],
-      D: [...selectedSlots.D],
-      C: [...selectedSlots.C],
-      A: [...selectedSlots.A]
-    };
-    const used = new Set(selectedIds);
+    const pinnedIds = currentPlayers.map(p => p.id);
 
-    // If no goalkeepers or partial goalkeepers, ensure single-team goalkeeper block
-    const existingKeepers = nextSlots.P.filter(Boolean) as Player[];
-    let keeperTeam = existingKeepers.length > 0 ? existingKeepers[0].team : null;
+    // Call full optimizer preserving all chosen players and proper budget distribution
+    const generated = optimizeSquad(allPlayers, settings, pinnedIds);
 
-    if (!keeperTeam) {
-      // Pick best affordable goalkeeper block
-      const affordableBlock = goalkeeperBlocks.find(b => b.price <= Math.max(30, budgetLeft * 0.15)) || goalkeeperBlocks[goalkeeperBlocks.length - 1];
-      if (affordableBlock) {
-        nextSlots.P = [affordableBlock.players[0] || null, affordableBlock.players[1] || null, affordableBlock.players[2] || null];
-        affordableBlock.players.forEach(p => used.add(p.id));
-        budgetLeft -= affordableBlock.price;
+    const generatedP = generated.players.filter(p => p.role === 'P');
+    const generatedD = generated.players.filter(p => p.role === 'D');
+    const generatedC = generated.players.filter(p => p.role === 'C');
+    const generatedA = generated.players.filter(p => p.role === 'A');
+
+    // Fill slots prioritizing already placed players
+    const buildRoleSlots = (currentRoleSlots: Array<Player | null>, genPool: Player[]) => {
+      const result: Array<Player | null> = [...currentRoleSlots];
+      const usedInRole = new Set(result.filter(Boolean).map(p => p!.id));
+      const remainingGen = genPool.filter(p => !usedInRole.has(p.id));
+
+      let genIdx = 0;
+      for (let i = 0; i < result.length; i++) {
+        if (result[i] === null && genIdx < remainingGen.length) {
+          result[i] = remainingGen[genIdx++];
+        }
       }
-    } else {
-      // Fill missing slots for the same team
-      const sameTeam = allPlayers
-        .filter(p => p.role === 'P' && p.team === keeperTeam && !used.has(p.id))
-        .sort((a, b) => calculateDynamicPrice(a, totalBudget, participants) - calculateDynamicPrice(b, totalBudget, participants));
+      return result;
+    };
 
-      let sIdx = 0;
-      nextSlots.P = nextSlots.P.map(p => {
-        if (p) return p;
-        const backup = sameTeam[sIdx++];
-        if (backup) {
-          used.add(backup.id);
-          budgetLeft -= calculateDynamicPrice(backup, totalBudget, participants);
-          return backup;
-        }
-        return null;
-      });
-    }
-
-    const otherRoles: Role[] = ['D', 'C', 'A'];
-
-    otherRoles.forEach(role => {
-      const list = nextSlots[role];
-      list.forEach((slot, idx) => {
-        if (slot !== null) return; // already filled
-
-        let remainingEmptyTotal = 0;
-        otherRoles.forEach(r => {
-          nextSlots[r].forEach(s => { if (s === null) remainingEmptyTotal++; });
-        });
-
-        const maxAffordableForThisSlot = Math.max(1, budgetLeft - (remainingEmptyTotal - 1));
-
-        const candidates = allPlayers
-          .filter(p => p.role === role && !used.has(p.id))
-          .map(p => {
-            const price = calculateDynamicPrice(p, totalBudget, participants);
-            const score = p.expectedPoints * 10 + (p.starterProbability / 100) * 10 + (p.isPenaltyTaker ? 8 : 0);
-            return { player: p, price, score };
-          })
-          .filter(c => c.price <= maxAffordableForThisSlot)
-          .sort((a, b) => b.score - a.score);
-
-        const chosen = candidates[0] || allPlayers
-          .filter(p => p.role === role && !used.has(p.id))
-          .map(p => ({ player: p, price: calculateDynamicPrice(p, totalBudget, participants), score: 0 }))
-          .sort((a, b) => a.price - b.price)[0];
-
-        if (chosen) {
-          nextSlots[role][idx] = chosen.player;
-          used.add(chosen.player.id);
-          budgetLeft -= chosen.price;
-        }
-      });
-    });
+    const nextSlots = {
+      P: buildRoleSlots(selectedSlots.P, generatedP),
+      D: buildRoleSlots(selectedSlots.D, generatedD),
+      C: buildRoleSlots(selectedSlots.C, generatedC),
+      A: buildRoleSlots(selectedSlots.A, generatedA)
+    };
 
     setSelectedSlots(nextSlots);
     saveToLocalStorage(nextSlots);
@@ -433,7 +384,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               onClick={handleMagicFill}
               className="btn-primary"
               style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px' }}
-              title="Completa gli slot vuoti ottimizzando i crediti residui"
+              title="Completa gli slot vuoti ottimizzando i crediti residui con il budget corretto per reparto"
             >
               <Sparkles size={15} />
               <span>🪄 Autocompleta Slot Vuoti (AI)</span>
