@@ -24,6 +24,7 @@ import {
   ArrowRight,
   ArrowUpDown,
   Flame,
+  Activity,
   Edit3
 } from 'lucide-react';
 
@@ -409,7 +410,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               </span>
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Componi la tua rosa, imposta i prezzi custom per ogni giocatore o autocompleta con l'AI
+              Componi la tua rosa, visualizza FantaMedia (FM) & Titolarità per ciascun giocatore
             </p>
           </div>
 
@@ -519,7 +520,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
           </div>
 
           {/* Slots grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '10px' }}>
             {selectedSlots[role].map((player, idx) => {
               if (player) {
                 const price = calculateDynamicPrice(player, totalBudget, participants);
@@ -549,8 +550,21 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                         >
                           {player.name}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                          {player.team} • <span style={{ color: player.starterProbability >= 85 ? 'var(--accent-emerald-light)' : 'var(--text-muted)', fontWeight: 700 }}>{player.starterProbability}% Tit.</span>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                          <span>{player.team}</span>
+                          <span>•</span>
+                          <span style={{ 
+                            color: player.expectedPoints >= 7.0 ? 'var(--accent-emerald-light)' : player.expectedPoints >= 6.3 ? '#fff' : 'var(--text-secondary)', 
+                            fontWeight: 800, 
+                            fontFamily: 'var(--font-mono)' 
+                          }}>
+                            FM {player.expectedPoints.toFixed(1)}
+                          </span>
+                          <span>•</span>
+                          <span style={{ color: player.starterProbability >= 85 ? 'var(--accent-emerald-light)' : 'var(--text-muted)', fontWeight: 700 }}>
+                            {player.starterProbability}% Tit.
+                          </span>
+                          {player.isPenaltyTaker && <span>🎯</span>}
                         </div>
                       </div>
                     </div>
@@ -682,7 +696,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                           Tris {block.team}
                         </div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                          {block.starter.name} + riserve
+                          {block.starter.name} (FM {block.starter.expectedPoints.toFixed(1)}) + riserve
                         </div>
                       </div>
                       <span style={{ color: 'var(--accent-gold)', fontWeight: 800, fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>
@@ -820,10 +834,23 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                           )}
                         </div>
 
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '3px' }}>
-                          Titolarità: <strong style={{ color: isHighStarter ? 'var(--accent-emerald-light)' : player.starterProbability >= 70 ? '#fbbf24' : '#ef4444' }}>{player.starterProbability}%</strong>
-                          {' • '}FM: <strong style={{ color: '#fff' }}>{player.expectedPoints.toFixed(1)}</strong>
-                          {player.isPenaltyTaker && ' • 🎯 Rigori'}
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ 
+                            background: 'rgba(255, 255, 255, 0.06)', 
+                            color: player.expectedPoints >= 7.0 ? 'var(--accent-emerald-light)' : '#fff', 
+                            padding: '1px 6px', 
+                            borderRadius: '4px', 
+                            fontWeight: 800, 
+                            fontFamily: 'var(--font-mono)' 
+                          }}>
+                            FM {player.expectedPoints.toFixed(1)}
+                          </span>
+
+                          <span>
+                            Titolarità: <strong style={{ color: isHighStarter ? 'var(--accent-emerald-light)' : player.starterProbability >= 70 ? '#fbbf24' : '#ef4444' }}>{player.starterProbability}%</strong>
+                          </span>
+
+                          {player.isPenaltyTaker && <span style={{ color: '#f87171', fontWeight: 700 }}>🎯 Rigori</span>}
                         </div>
                       </div>
 
