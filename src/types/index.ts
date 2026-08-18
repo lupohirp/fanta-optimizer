@@ -1,5 +1,19 @@
 export type Role = 'P' | 'D' | 'C' | 'A';
 
+export interface HistoricalStats {
+  season: string;          // es. '2025-26', '2024-25'
+  played: number;          // PG (Partite giocate)
+  avgRating: number;       // MV (Media Voto pura)
+  fantaAvg: number;        // FM (FantaMedia con bonus/malus)
+  goals: number;           // Gol fatti
+  goalsConceded?: number;  // Gol subiti (per i portieri)
+  assists: number;         // Assist
+  penaltiesScored: number; // Rigori segnati
+  penaltiesTaken: number;  // Rigori calciati
+  yellowCards: number;     // Ammonizioni
+  redCards: number;        // Espulsioni
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -16,6 +30,8 @@ export interface Player {
   expectedAssists: number;    // Assist stimati stagione
   trend: 'up' | 'stable' | 'down';
   notes?: string;             // Consigli / scout notes
+  historicalStats?: HistoricalStats[]; // Statistiche stagioni precedenti
+  valueIndex?: number;        // Indice di convenienza (xP / Prezzo)
 }
 
 export type StrategyType = 
@@ -32,7 +48,7 @@ export interface StrategyInfo {
   description: string;
   icon: string;
   budgetWeights: {
-    P: number; // Percentuale suggerita (es. 0.08 = 8%)
+    P: number;
     D: number;
     C: number;
     A: number;
@@ -41,6 +57,7 @@ export interface StrategyInfo {
 }
 
 export interface LeagueSettings {
+  selectedSeason: string;      // es. '2026-27', '2027-28'
   totalBudget: number;         // es. 500, 1000, 300
   participants: number;        // 6, 8, 10, 12
   defenseModifier: boolean;    // Modificatore difesa attivo?
@@ -69,6 +86,7 @@ export interface SquadSlot {
 export interface GeneratedSquad {
   id: string;
   name: string;
+  season: string;
   strategy: StrategyType;
   createdAt: number;
   players: Player[];
@@ -118,6 +136,6 @@ export interface FilterOptions {
   tier: number | 'ALL';
   onlyPenaltyTakers: boolean;
   onlyStarters: boolean;
-  sortBy: 'price' | 'points' | 'quotation' | 'name' | 'goals';
+  sortBy: 'price' | 'points' | 'quotation' | 'name' | 'goals' | 'value';
   sortOrder: 'asc' | 'desc';
 }

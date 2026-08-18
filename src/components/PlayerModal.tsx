@@ -15,6 +15,8 @@ import {
   Minus,
   Sparkles,
   Edit3,
+  Calendar,
+  History,
   X
 } from 'lucide-react';
 
@@ -40,6 +42,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
   if (!player) return null;
 
   const dynamicPrice = calculateDynamicPrice(player, totalBudget, participants);
+  const history = player.historicalStats && player.historicalStats.length > 0 ? player.historicalStats[0] : null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -90,14 +93,14 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           </div>
 
           <div className="stat-widget" style={{ padding: '10px' }}>
-            <span className="stat-widget-label">FantaMedia Attesa</span>
+            <span className="stat-widget-label">FM Proiettata (Ponderata)</span>
             <span className="stat-widget-value" style={{ color: 'var(--accent-emerald-light)' }}>
-              {player.expectedPoints.toFixed(1)}
+              {player.expectedPoints.toFixed(2)}
             </span>
           </div>
 
           <div className="stat-widget" style={{ padding: '10px' }}>
-            <span className="stat-widget-label">Quotazione Base</span>
+            <span className="stat-widget-label">Quotazione Listino</span>
             <span className="stat-widget-value">
               {player.quotation}
             </span>
@@ -111,10 +114,42 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           </div>
         </div>
 
+        {/* Historical Stats Section */}
+        {history && (
+          <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: '16px' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-gold)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <History size={14} />
+              <span>DATI STORICI STAGIONE {history.season.replace('-', '/')} (t-1)</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', textAlign: 'center' }}>
+              <div style={{ background: 'var(--bg-card)', padding: '6px 8px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Presenze (PG)</div>
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', fontFamily: 'var(--font-mono)' }}>{history.played} / 38</div>
+              </div>
+
+              <div style={{ background: 'var(--bg-card)', padding: '6px 8px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Media Voto (MV)</div>
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', fontFamily: 'var(--font-mono)' }}>{history.avgRating.toFixed(2)}</div>
+              </div>
+
+              <div style={{ background: 'var(--bg-card)', padding: '6px 8px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>FantaMedia (FM)</div>
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--accent-emerald-light)', fontFamily: 'var(--font-mono)' }}>{history.fantaAvg.toFixed(2)}</div>
+              </div>
+
+              <div style={{ background: 'var(--bg-card)', padding: '6px 8px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Gol / Assist</div>
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', fontFamily: 'var(--font-mono)' }}>{history.goals}G / {history.assists}A</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Expected Stats & Attributes */}
         <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '14px', marginBottom: '18px' }}>
           <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase' }}>
-            PROFILO STATISTICO
+            PROIEZIONE BONUS & CARATTERISTICHE
           </div>
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
@@ -138,7 +173,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
 
           {player.notes && (
             <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, background: 'rgba(255, 255, 255, 0.03)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--accent-emerald)' }}>
-              <strong>Analisi Scout:</strong> {player.notes}
+              <strong>Analisi Scout & Proiezione:</strong> {player.notes}
             </div>
           )}
         </div>

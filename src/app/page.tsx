@@ -6,6 +6,7 @@ import { INITIAL_PLAYERS } from '../data/players';
 import { optimizeSquad, findAlternatives, calculateDynamicPrice } from '../lib/optimizer';
 import { formatSquadForWhatsApp, exportSquadToCSV } from '../lib/export';
 import { syncLivePlayers, getLastSyncInfo } from '../lib/sync';
+import { getCurrentSeason, formatSeasonLabel } from '../lib/season';
 
 import { Navbar, TabType } from '../components/Navbar';
 import { ConfigPanel } from '../components/ConfigPanel';
@@ -31,15 +32,16 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-const STORAGE_PLAYERS_KEY = 'fanta_optimizer_official_2026_27_players';
+const STORAGE_PLAYERS_KEY = 'fanta_optimizer_official_players';
 
 export default function Home() {
+  const currentSeason = getCurrentSeason();
   const [activeTab, setActiveTab] = useState<TabType>('generator');
   const [allPlayers, setAllPlayers] = useState<Player[]>(INITIAL_PLAYERS);
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState('Stagione 2026/27');
+  const [lastSyncTime, setLastSyncTime] = useState(`Stagione ${formatSeasonLabel(currentSeason)}`);
   const [viewMode, setViewMode] = useState<'pitch' | 'table'>('pitch');
   const [selectedPlayerForModal, setSelectedPlayerForModal] = useState<Player | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -52,8 +54,9 @@ export default function Home() {
   const [alternativeTargetPlayer, setAlternativeTargetPlayer] = useState<Player | null>(null);
   const [alternativeList, setAlternativeList] = useState<Player[]>([]);
 
-  // League settings
+  // League settings with dynamic season
   const [settings, setSettings] = useState<LeagueSettings>({
+    selectedSeason: currentSeason,
     totalBudget: 500,
     participants: 8,
     defenseModifier: false,
@@ -71,6 +74,7 @@ export default function Home() {
   // Current generated squad
   const [squad, setSquad] = useState<GeneratedSquad>(() => {
     return optimizeSquad(INITIAL_PLAYERS, {
+      selectedSeason: currentSeason,
       totalBudget: 500,
       participants: 8,
       defenseModifier: false,
@@ -88,33 +92,49 @@ export default function Home() {
     }, 3500);
   };
 
-  // Background Live Sync on Startup from official Fantacalcio 2026-27 feed
+  // Background Live Sync on Startup from official Fantacalcio feed
   useEffect(() => {
     const syncInfo = getLastSyncInfo();
     if (syncInfo.formattedTime) setLastSyncTime(syncInfo.formattedTime);
 
-    // Auto sync from official 2026-27 feed
-    syncLivePlayers().then(result => {
+    // Auto sync from official live feed
+    syncLivePlayers(settings.selectedSeason).then(result => {
       if (result.success && result.players.length > 0) {
         setAllPlayers(result.players);
         setSquad(optimizeSquad(result.players, settings, []));
         setLastSyncTime('Adesso');
       }
     });
-  }, []);
+  }, [settings.selectedSeason]);
+
+  // Season Change Handler
+  const handleSeasonChange = async (newSeason: string) => {
+    setSettings(prev => ({ ...prev, selectedSeason: newSeason }));
+    setIsSyncing(true);
+    showToast(`🔄 Caricamento stagione ${formatSeasonLabel(newSeason)}...`);
+    const result = await syncLivePlayers(newSeason);
+    setIsSyncing(false);
+    if (result.success && result.players.length > 0) {
+      setAllPlayers(result.players);
+      setPinnedIds([]);
+      setSquad(optimizeSquad(result.players, { ...settings, selectedSeason: newSeason }, []));
+      setLastSyncTime('Adesso');
+      showToast(`🟢 Stagione ${formatSeasonLabel(newSeason)} caricata (${result.count} giocatori)!`);
+    }
+  };
 
   // Manual Trigger for Live Sync
   const handleManualSync = async () => {
     setIsSyncing(true);
-    const result = await syncLivePlayers();
+    const result = await syncLivePlayers(settings.selectedSeason);
     setIsSyncing(false);
     if (result.success && result.players.length > 0) {
       setAllPlayers(result.players);
       setSquad(optimizeSquad(result.players, settings, pinnedIds));
       setLastSyncTime('Adesso');
-      showToast(`🟢 Listone ufficiale 2026/27 aggiornato! (${result.count} giocatori)`);
+      showToast(`🟢 Listone ufficiale ${formatSeasonLabel(settings.selectedSeason)} aggiornato! (${result.count} giocatori)`);
     } else {
-      showToast('🟢 Listone ufficiale 2026/27 sincronizzato.');
+      showToast(`🟢 Listone ${formatSeasonLabel(settings.selectedSeason)} sincronizzato.`);
     }
   };
 
@@ -125,7 +145,7 @@ export default function Home() {
       const generated = optimizeSquad(allPlayers, settings, pinnedIds);
       setSquad(generated);
       setIsGenerating(false);
-      showToast('⚡ Rosa 2026/27 ottimizzata con successo!');
+      showToast(`⚡ Rosa ${formatSeasonLabel(settings.selectedSeason)} ottimizzata!`);
     }, 250);
   }, [allPlayers, settings, pinnedIds]);
 
@@ -204,7 +224,7 @@ export default function Home() {
     const text = formatSquadForWhatsApp(squad, settings.totalBudget, settings.participants);
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
-      showToast('📋 Rosa 2026/27 formattata copiata negli appunti per WhatsApp!');
+      showToast('📋 Rosa formattata copiata negli appunti per WhatsApp!');
     } else {
       showToast('Impossibile accedere agli appunti');
     }
@@ -264,6 +284,7 @@ export default function Home() {
               settings={settings}
               setSettings={setSettings}
               onGenerate={handleGenerateSquad}
+              onSeasonChange={handleSeasonChange}
               pinnedCount={pinnedIds.length}
               isGenerating={isGenerating}
             />

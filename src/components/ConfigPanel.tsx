@@ -3,6 +3,7 @@
 import React from 'react';
 import { LeagueSettings, StrategyType } from '../types';
 import { STRATEGIES } from '../data/players';
+import { getAvailableSeasons, formatSeasonLabel, getCurrentSeason } from '../lib/season';
 import { 
   Coins, 
   Users2, 
@@ -10,13 +11,15 @@ import {
   Sparkles, 
   RefreshCw, 
   Pin,
-  Sliders
+  Sliders,
+  Calendar
 } from 'lucide-react';
 
 interface ConfigPanelProps {
   settings: LeagueSettings;
   setSettings: React.Dispatch<React.SetStateAction<LeagueSettings>>;
   onGenerate: () => void;
+  onSeasonChange: (newSeason: string) => void;
   pinnedCount: number;
   isGenerating: boolean;
 }
@@ -25,11 +28,14 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   settings,
   setSettings,
   onGenerate,
+  onSeasonChange,
   pinnedCount,
   isGenerating
 }) => {
   const quickBudgets = [300, 500, 600, 1000];
   const participantOptions = [6, 8, 10, 12];
+  const availableSeasons = getAvailableSeasons();
+  const currentSeason = getCurrentSeason();
 
   const handleBudgetChange = (val: number) => {
     setSettings(prev => ({ ...prev, totalBudget: Math.max(50, val) }));
@@ -56,28 +62,55 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <Sliders size={18} />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Parametri d'Asta & Strategia</h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Imposta crediti e stile di gioco per calcolare la rosa perfetta</p>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Parametri d'Asta & Stagione</h2>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Configura budget, stagione ufficiale e modello statistico
+            </p>
           </div>
         </div>
 
-        {pinnedCount > 0 && (
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px', 
-            background: 'rgba(245, 158, 11, 0.15)', 
-            border: '1px solid rgba(245, 158, 11, 0.3)',
-            padding: '4px 10px',
-            borderRadius: 'var(--radius-full)',
-            color: '#fbbf24',
-            fontSize: '0.8rem',
-            fontWeight: 600
-          }}>
-            <Pin size={13} />
-            <span>{pinnedCount} {pinnedCount === 1 ? 'giocatore bloccato' : 'giocatori bloccati'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Season Selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '3px 8px' }}>
+            <Calendar size={14} style={{ color: 'var(--accent-emerald-light)' }} />
+            <select
+              value={settings.selectedSeason || currentSeason}
+              onChange={(e) => onSeasonChange(e.target.value)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-primary)',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                cursor: 'pointer'
+              }}
+            >
+              {availableSeasons.map(s => (
+                <option key={s} value={s} style={{ background: 'var(--bg-card)', color: '#fff' }}>
+                  Stagione {formatSeasonLabel(s)} {s === currentSeason ? '⭐' : ''}
+                </option>
+              ))}
+            </select>
           </div>
-        )}
+
+          {pinnedCount > 0 && (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              background: 'rgba(245, 158, 11, 0.15)', 
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              padding: '4px 10px',
+              borderRadius: 'var(--radius-full)',
+              color: '#fbbf24',
+              fontSize: '0.8rem',
+              fontWeight: 600
+            }}>
+              <Pin size={13} />
+              <span>{pinnedCount} bloccati</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div style={{ 
