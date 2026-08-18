@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { LeagueSettings, StrategyType } from '../types';
 import { STRATEGIES } from '../data/players';
 import { getAvailableSeasons, formatSeasonLabel, getCurrentSeason } from '../lib/season';
@@ -12,7 +12,12 @@ import {
   RefreshCw, 
   Pin,
   Sliders,
-  Calendar
+  Calendar,
+  KeyRound,
+  Eye,
+  EyeOff,
+  ExternalLink,
+  Bot
 } from 'lucide-react';
 
 interface ConfigPanelProps {
@@ -32,6 +37,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   pinnedCount,
   isGenerating
 }) => {
+  const [showApiKey, setShowApiKey] = useState(false);
   const quickBudgets = [300, 500, 600, 1000];
   const participantOptions = [6, 8, 10, 12];
   const availableSeasons = getAvailableSeasons();
@@ -43,6 +49,19 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
   const handleStrategyChange = (strat: StrategyType) => {
     setSettings(prev => ({ ...prev, strategy: strat }));
+  };
+
+  const handleApiKeyChange = (key: string) => {
+    setSettings(prev => ({ ...prev, geminiApiKey: key }));
+    try {
+      if (key) {
+        localStorage.setItem('fanta_optimizer_gemini_api_key_v1', key);
+      } else {
+        localStorage.removeItem('fanta_optimizer_gemini_api_key_v1');
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -62,19 +81,25 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <Sliders size={18} />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Parametri d'Asta & Stagione</h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Configura budget, stagione ufficiale e modello statistico
-            </p>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Impostazioni della Lega</h2>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Configura parametri, stagione, budget e modello AI</p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          {/* Season Selector */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '3px 8px' }}>
-            <Calendar size={14} style={{ color: 'var(--accent-emerald-light)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Season Selector Dropdown */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '6px', 
+            background: 'var(--bg-input)', 
+            border: '1px solid var(--border-subtle)',
+            padding: '4px 10px',
+            borderRadius: 'var(--radius-full)'
+          }}>
+            <Calendar size={13} style={{ color: 'var(--accent-emerald-light)' }} />
             <select
-              value={settings.selectedSeason || currentSeason}
+              value={settings.selectedSeason}
               onChange={(e) => onSeasonChange(e.target.value)}
               style={{
                 background: 'transparent',
@@ -141,8 +166,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                 padding: '10px 14px',
                 fontSize: '1.1rem',
                 fontWeight: 700,
-                fontFamily: 'var(--font-mono)',
-                width: '120px'
+                width: '120px',
+                fontFamily: 'var(--font-mono)'
               }}
             />
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
@@ -152,12 +177,12 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   type="button"
                   onClick={() => handleBudgetChange(b)}
                   style={{
-                    background: settings.totalBudget === b ? 'var(--accent-emerald)' : 'var(--bg-card-subtle)',
+                    background: settings.totalBudget === b ? 'var(--accent-emerald)' : 'var(--bg-input)',
                     color: settings.totalBudget === b ? '#fff' : 'var(--text-secondary)',
                     border: '1px solid var(--border-subtle)',
-                    padding: '6px 10px',
                     borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.78rem',
+                    padding: '6px 10px',
+                    fontSize: '0.75rem',
                     fontWeight: 600,
                     cursor: 'pointer'
                   }}
@@ -172,10 +197,10 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         {/* Participants Selection */}
         <div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-            <Users2 size={15} style={{ color: 'var(--role-c-text)' }} />
-            <span>Partecipanti Lega</span>
+            <Users2 size={15} style={{ color: 'var(--role-c-border)' }} />
+            <span>Numero Partecipanti</span>
           </label>
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
             {participantOptions.map(p => (
               <button
                 key={p}
@@ -183,57 +208,101 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                 onClick={() => setSettings(prev => ({ ...prev, participants: p }))}
                 style={{
                   flex: 1,
-                  background: settings.participants === p ? 'var(--role-c-border)' : 'var(--bg-input)',
+                  background: settings.participants === p ? 'var(--accent-emerald)' : 'var(--bg-input)',
                   color: settings.participants === p ? '#fff' : 'var(--text-secondary)',
-                  border: `1px solid ${settings.participants === p ? 'var(--role-c-text)' : 'var(--border-subtle)'}`,
-                  padding: '9px 12px',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-md)',
-                  fontSize: '0.85rem',
+                  padding: '10px',
+                  fontSize: '0.9rem',
                   fontWeight: 700,
-                  cursor: 'pointer',
-                  textAlign: 'center'
+                  cursor: 'pointer'
                 }}
               >
-                {p} Squadre
+                {p} fanta-squadre
               </button>
             ))}
           </div>
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '5px' }}>
-            {settings.participants >= 10 
-              ? '⚠️ Prezzi dei top player aumentati per alta scarsità' 
-              : settings.participants === 6 
-                ? 'ℹ️ Prezzi più abbordabili data l\'ampia offerta' 
-                : 'Standard 8 squadre (calibrazione ottimale)'}
-          </p>
         </div>
 
-        {/* Modifiers Toggles */}
+        {/* Modifiers & Bonuses */}
         <div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-            <ShieldCheck size={15} style={{ color: 'var(--accent-emerald-light)' }} />
-            <span>Bonus & Regolamento</span>
+            <ShieldCheck size={15} style={{ color: 'var(--role-d-border)' }} />
+            <span>Bonus e Modificatori</span>
           </label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.82rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem' }}>
               <input
                 type="checkbox"
                 checked={settings.defenseModifier}
                 onChange={(e) => setSettings(prev => ({ ...prev, defenseModifier: e.target.checked }))}
-                style={{ accentColor: 'var(--accent-emerald)', width: '16px', height: '16px' }}
+                style={{ accentColor: 'var(--accent-emerald)' }}
               />
-              <span>Modificatore Difesa attivo (+1 a +6 pt)</span>
+              <span>Modificatore di Difesa attivo</span>
             </label>
-
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.82rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem' }}>
               <input
                 type="checkbox"
                 checked={settings.cleanSheetBonus}
                 onChange={(e) => setSettings(prev => ({ ...prev, cleanSheetBonus: e.target.checked }))}
-                style={{ accentColor: 'var(--accent-emerald)', width: '16px', height: '16px' }}
+                style={{ accentColor: 'var(--accent-emerald)' }}
               />
-              <span>Bonus Porta Inviolata (+1 pt portiere)</span>
+              <span>Bonus Porta Inviolata (+1 pt per Clean Sheet)</span>
             </label>
           </div>
+        </div>
+      </div>
+
+      {/* Google AI Studio Gemini API Key Card (Free Tier) */}
+      <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '14px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Bot size={17} style={{ color: 'var(--accent-emerald-light)' }} />
+            <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>Google AI Studio (Gemini 2.5 Flash / Free Tier)</span>
+            <span style={{ fontSize: '0.7rem', background: settings.geminiApiKey ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.08)', color: settings.geminiApiKey ? 'var(--accent-emerald-light)' : 'var(--text-muted)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+              {settings.geminiApiKey ? '🟢 Gemini AI Connesso' : '⚪ Modalità Locale'}
+            </span>
+          </div>
+
+          <a 
+            href="https://aistudio.google.com/app/apikey" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ fontSize: '0.78rem', color: 'var(--accent-emerald-light)', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+          >
+            <span>Ottieni chiave gratuita su Google AI Studio</span>
+            <ExternalLink size={12} />
+          </a>
+        </div>
+
+        <div style={{ position: 'relative', maxWidth: '540px' }}>
+          <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+            <KeyRound size={15} />
+          </div>
+          <input
+            type={showApiKey ? 'text' : 'password'}
+            placeholder="Incolla qui la tua API Key di Google AI Studio (opzionale)"
+            value={settings.geminiApiKey || ''}
+            onChange={(e) => handleApiKeyChange(e.target.value)}
+            style={{
+              width: '100%',
+              background: 'var(--bg-input)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              padding: '8px 36px 8px 34px',
+              color: 'var(--text-primary)',
+              fontSize: '0.85rem',
+              fontFamily: 'var(--font-mono)'
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowApiKey(!showApiKey)}
+            style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+            title={showApiKey ? 'Nascondi' : 'Mostra'}
+          >
+            {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
+          </button>
         </div>
       </div>
 
