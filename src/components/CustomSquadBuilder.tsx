@@ -273,15 +273,12 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     setIsAiLoading(true);
     setAiTacticalReview(null);
 
-    const apiKey = settings.geminiApiKey || (typeof window !== 'undefined' ? localStorage.getItem('fanta_optimizer_gemini_api_key_v1') : undefined);
-
     try {
-      // Try Google AI Studio Gemini route
+      // Try Google AI Studio Gemini route (reads GEMINI_API_KEY from server env)
       const response = await fetch('/api/ai-autocomplete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          apiKey,
           model: settings.geminiModel || 'gemini-3.5-flash-lite',
           selectedSlots,
           remainingBudget,

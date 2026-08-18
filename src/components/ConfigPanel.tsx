@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { LeagueSettings, StrategyType } from '../types';
 import { STRATEGIES } from '../data/players';
 import { getAvailableSeasons, formatSeasonLabel, getCurrentSeason } from '../lib/season';
@@ -13,10 +13,6 @@ import {
   Pin,
   Sliders,
   Calendar,
-  KeyRound,
-  Eye,
-  EyeOff,
-  ExternalLink,
   Bot
 } from 'lucide-react';
 
@@ -37,7 +33,6 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   pinnedCount,
   isGenerating
 }) => {
-  const [showApiKey, setShowApiKey] = useState(false);
   const quickBudgets = [300, 500, 600, 1000];
   const participantOptions = [6, 8, 10, 12];
   const availableSeasons = getAvailableSeasons();
@@ -49,19 +44,6 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
   const handleStrategyChange = (strat: StrategyType) => {
     setSettings(prev => ({ ...prev, strategy: strat }));
-  };
-
-  const handleApiKeyChange = (key: string) => {
-    setSettings(prev => ({ ...prev, geminiApiKey: key }));
-    try {
-      if (key) {
-        localStorage.setItem('fanta_optimizer_gemini_api_key_v1', key);
-      } else {
-        localStorage.removeItem('fanta_optimizer_gemini_api_key_v1');
-      }
-    } catch (e) {
-      console.error(e);
-    }
   };
 
   return (
@@ -253,82 +235,47 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
       </div>
 
-      {/* Google AI Studio Gemini API Key Card (Free Tier) */}
-      <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '14px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Bot size={17} style={{ color: 'var(--accent-emerald-light)' }} />
-            <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>Google AI Studio (Gemini 2.5 Flash / Free Tier)</span>
-            <span style={{ fontSize: '0.7rem', background: settings.geminiApiKey ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.08)', color: settings.geminiApiKey ? 'var(--accent-emerald-light)' : 'var(--text-muted)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-              {settings.geminiApiKey ? '🟢 Gemini AI Connesso' : '⚪ Modalità Locale'}
-            </span>
+      {/* Google AI Studio Gemini Engine Card */}
+      <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-emerald-light)' }}>
+            <Bot size={16} />
           </div>
-
-          <a 
-            href="https://aistudio.google.com/app/apikey" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            style={{ fontSize: '0.78rem', color: 'var(--accent-emerald-light)', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
-          >
-            <span>Ottieni chiave gratuita su Google AI Studio</span>
-            <ExternalLink size={12} />
-          </a>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800 }}>Motore Google AI Studio</span>
+              <span style={{ fontSize: '0.7rem', background: 'rgba(16, 185, 129, 0.2)', color: 'var(--accent-emerald-light)', padding: '1px 7px', borderRadius: '4px', fontWeight: 700 }}>
+                .env.local
+              </span>
+            </div>
+            <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: 0 }}>
+              Chiave gestita via environment server (<code style={{ color: 'var(--accent-gold)' }}>GEMINI_API_KEY</code>)
+            </p>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginTop: '10px' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: '260px', maxWidth: '540px' }}>
-            <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-              <KeyRound size={15} />
-            </div>
-            <input
-              type={showApiKey ? 'text' : 'password'}
-              placeholder="Incolla qui la tua API Key di Google AI Studio (opzionale)"
-              value={settings.geminiApiKey || ''}
-              onChange={(e) => handleApiKeyChange(e.target.value)}
-              style={{
-                width: '100%',
-                background: 'var(--bg-input)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-                padding: '8px 36px 8px 34px',
-                color: 'var(--text-primary)',
-                fontSize: '0.85rem',
-                fontFamily: 'var(--font-mono)'
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowApiKey(!showApiKey)}
-              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-              title={showApiKey ? 'Nascondi' : 'Mostra'}
-            >
-              {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Modello:</span>
-            <select
-              value={settings.geminiModel || 'gemini-3.5-flash-lite'}
-              onChange={(e) => setSettings(prev => ({ ...prev, geminiModel: e.target.value }))}
-              style={{
-                background: 'var(--bg-input)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-                padding: '7px 10px',
-                color: 'var(--accent-emerald-light)',
-                fontWeight: 700,
-                fontSize: '0.82rem',
-                fontFamily: 'var(--font-mono)'
-              }}
-            >
-              <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Consigliato)</option>
-              <option value="gemini-3.5-flash">gemini-3.5-flash</option>
-              <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
-              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-              <option value="gemini-2.0-flash">gemini-2.0-flash</option>
-            </select>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Modello AI:</span>
+          <select
+            value={settings.geminiModel || 'gemini-3.5-flash-lite'}
+            onChange={(e) => setSettings(prev => ({ ...prev, geminiModel: e.target.value }))}
+            style={{
+              background: 'var(--bg-input)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              padding: '6px 12px',
+              color: 'var(--accent-emerald-light)',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              fontFamily: 'var(--font-mono)'
+            }}
+          >
+            <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Predefinito)</option>
+            <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+          </select>
         </div>
       </div>
 
