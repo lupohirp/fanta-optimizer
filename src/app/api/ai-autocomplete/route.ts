@@ -74,6 +74,8 @@ export async function POST(request: Request) {
       A: selectedSlots.A.filter((p: any) => p === null).length,
     };
 
+    const totalMissingSlots = missingCounts.P + missingCounts.D + missingCounts.C + missingCounts.A;
+
     const currentlyChosen: Player[] = [];
     ['P', 'D', 'C', 'A'].forEach(r => {
       selectedSlots[r as Role].forEach((p: Player | null) => {
@@ -121,23 +123,32 @@ export async function POST(request: Request) {
         .slice(0, 40);
     });
 
-    // Build the AI Prompt
-    const systemPrompt = `Sei un esperto astologo e fanta-allenatore professionista di Fantacalcio Serie A.
-Il tuo compito è completare ESATTAMENTE il numero di slot vuoti richiesti per ciascun reparto, selezionando i migliori calciatori dalla lista dei candidati fornita.
+    // Build the AI System Prompt with explicit dynamic status
+    const systemPrompt = `Sei il miglior analista dati e stratega di Aste di Fantacalcio Serie A in Italia.
+Il tuo obiettivo è completare una rosa da 25 giocatori gestendo con massima intelligenza tattica ed economica il budget residuo.
 
-REGOLE OBBLIGATORIE:
-1. QUANTITÀ ESATTA DI GIOCATORI DA SCEGLIERE:
-   - Portieri (P): devi scegliere ESATTAMENTE ${missingCounts.P} giocatori
-   - Difensori (D): devi scegliere ESATTAMENTE ${missingCounts.D} giocatori
-   - Centrocampisti (C): devi scegliere ESATTAMENTE ${missingCounts.C} giocatori
-   - Attaccanti (A): devi scegliere ESATTAMENTE ${missingCounts.A} giocatori
+=== STATO ATTUALE DELL'ASTA (DATI DINAMICI) ===
+• Budget Iniziale: ${totalBudget} crediti
+• Budget Residuo Disponibile: ${remainingBudget} crediti
+• Giocatori già acquistati in rosa: ${currentlyChosen.length} su 25
+• Slot liberi totali da riempire adesso: ${totalMissingSlots} slot
 
-2. TITOLARITÀ (Certezza di voto): Scegli sempre giocatori con titolarità alta (≥80-95%) per evitare s.v.
-3. BLOCCO PORTIERI: I 3 portieri devono essere TUTTI della STESSA SQUADRA.
-4. BUDGET RESIDUO: La somma dei prezzi di TUTTI i giocatori scelti non deve superare ${remainingBudget} crediti.
-5. Usa ESATTAMENTE gli ID e i NOMI presenti nella lista dei candidati.
+=== NUMERO ESATTO DI CALCIATORI DA SELEZIONARE PER REPARTO ===
+• Portieri (P): DEVI selezionare ESATTAMENTE ${missingCounts.P} giocatori
+• Difensori (D): DEVI selezionare ESATTAMENTE ${missingCounts.D} giocatori
+• Centrocampisti (C): DEVI selezionare ESATTAMENTE ${missingCounts.C} giocatori
+• Attaccanti (A): DEVI selezionare ESATTAMENTE ${missingCounts.A} giocatori
 
-Rispondi ESCLUSIVAMENTE in JSON valido con questa struttura:
+=== REGOLE TATTICHE FONDAMENTALI ===
+1. TITOLARITÀ (Certezza di voto): Privilegia sempre titolari affidabili (≥80-95% titolarità) per non andare in inferiorità numerica durante la stagione.
+2. RIPARTIZIONE BUDGET:
+   - Se mancano attaccanti, riserva la quota principale del budget residuo (${Math.round(remainingBudget * 0.45)}-${Math.round(remainingBudget * 0.55)} cr) all'attacco.
+   - Completa i posti di rincalzo (3°-4° slot difensori/centrocampisti) con titolari low-cost (1-4 crediti).
+3. BLOCCO PORTIERI: I 3 portieri DEVONO appartenere TUTTI alla STESSA SQUADRA (titolare + vice).
+4. TETTO DI SPESA MASSIMO: La somma dei prezzi di TUTTI i giocatori che selezioni NON PUÒ SUPERARE ${remainingBudget} crediti.
+5. Usa esclusivamente calciatori presenti nella lista dei candidati fornita.
+
+Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con questa struttura:
 {
   "selectedPlayers": {
     "P": [{"id": "...", "name": "...", "price": 0}],
@@ -145,21 +156,22 @@ Rispondi ESCLUSIVAMENTE in JSON valido con questa struttura:
     "C": [{"id": "...", "name": "...", "price": 0}],
     "A": [{"id": "...", "name": "...", "price": 0}]
   },
-  "tacticalReview": "Breve commento tattico (2-3 frasi) in italiano che spiega la composizione della rosa"
+  "tacticalReview": "Spiegazione sintetica (2-3 frasi) in italiano della strategia di spesa adottata e dei punti di forza dei nuovi innesti"
 }`;
 
     const userContent = JSON.stringify({
-      remainingBudget,
-      totalBudget,
-      strategy,
-      missingCounts,
-      currentlyChosen: currentlyChosen.map(p => ({
+      budgetResiduo: remainingBudget,
+      budgetTotale: totalBudget,
+      partecipanti: participants,
+      strategia: strategy,
+      slotMancanti: missingCounts,
+      rosaAttuale: currentlyChosen.map(p => ({
         name: p.name,
         role: p.role,
         team: p.team,
-        price: calculateDynamicPrice(p, totalBudget, participants)
+        prezzoSpeso: calculateDynamicPrice(p, totalBudget, participants)
       })),
-      candidates: candidatesByRole
+      candidatiDisponibili: candidatesByRole
     });
 
     // Prioritize user selected model
@@ -188,7 +200,7 @@ Rispondi ESCLUSIVAMENTE in JSON valido con questa struttura:
                 role: 'user',
                 parts: [
                   { text: systemPrompt },
-                  { text: `DATI CANDIDATI ED ESIGENZE ROSA:\n${userContent}` }
+                  { text: `DATI SITUAZIONE ASTA E CANDIDATI:\n${userContent}` }
                 ]
               }
             ],
