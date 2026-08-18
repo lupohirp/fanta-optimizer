@@ -14,6 +14,7 @@ import {
   TrendingDown, 
   Minus,
   Sparkles,
+  Edit3,
   X
 } from 'lucide-react';
 
@@ -24,6 +25,7 @@ interface PlayerModalProps {
   participants: number;
   isPinned: boolean;
   onTogglePin: (playerId: string) => void;
+  onEditPlayer?: (player: Player) => void;
 }
 
 export const PlayerModal: React.FC<PlayerModalProps> = ({
@@ -32,7 +34,8 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
   totalBudget,
   participants,
   isPinned,
-  onTogglePin
+  onTogglePin,
+  onEditPlayer
 }) => {
   if (!player) return null;
 
@@ -58,9 +61,23 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
             </div>
           </div>
 
-          <button onClick={onClose} className="btn-icon">
-            <X size={18} />
-          </button>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {onEditPlayer && (
+              <button 
+                onClick={() => {
+                  onClose();
+                  onEditPlayer(player);
+                }} 
+                className="btn-icon"
+                title="Modifica statistiche, squadra o prezzo"
+              >
+                <Edit3 size={16} />
+              </button>
+            )}
+            <button onClick={onClose} className="btn-icon">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Price and FM highlights */}

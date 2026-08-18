@@ -14,7 +14,9 @@ import {
   Crosshair,
   ShieldAlert,
   UserCheck,
-  FileSpreadsheet
+  FileSpreadsheet,
+  UserPlus,
+  Edit3
 } from 'lucide-react';
 
 interface PlayerDatabaseProps {
@@ -25,6 +27,8 @@ interface PlayerDatabaseProps {
   onTogglePin: (playerId: string) => void;
   onSelectPlayer: (player: Player) => void;
   onOpenImport?: () => void;
+  onAddNewPlayer?: () => void;
+  onEditPlayer?: (player: Player) => void;
 }
 
 export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
@@ -34,7 +38,9 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
   pinnedIds,
   onTogglePin,
   onSelectPlayer,
-  onOpenImport
+  onOpenImport,
+  onAddNewPlayer,
+  onEditPlayer
 }) => {
   const [filters, setFilters] = useState<FilterOptions>({
     search: '',
@@ -114,22 +120,29 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Listino & Database Calciatori</h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Esplora statistiche, fanta-medie, rigoristi e blocca i tuoi preferiti per l'algoritmo
+              Esplora statistiche, fanta-medie, rigoristi e personalizza i calciatori per l'asta
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-              Mostrati <strong style={{ color: 'var(--text-primary)' }}>{filteredPlayers.length}</strong> su {players.length} calciatori
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {onAddNewPlayer && (
+              <button
+                onClick={onAddNewPlayer}
+                className="btn-primary"
+                style={{ padding: '7px 14px', fontSize: '0.82rem', gap: '6px' }}
+              >
+                <UserPlus size={15} />
+                <span>+ Aggiungi Calciatore</span>
+              </button>
+            )}
 
             {onOpenImport && (
               <button
                 onClick={onOpenImport}
                 className="btn-secondary"
-                style={{ padding: '6px 12px', fontSize: '0.78rem', gap: '6px' }}
+                style={{ padding: '7px 12px', fontSize: '0.82rem', gap: '6px' }}
               >
-                <FileSpreadsheet size={14} style={{ color: 'var(--accent-emerald-light)' }} />
-                <span>Carica Listino (.xlsx/.csv)</span>
+                <FileSpreadsheet size={15} style={{ color: 'var(--accent-emerald-light)' }} />
+                <span>Carica / Feed Live</span>
               </button>
             )}
           </div>
@@ -220,6 +233,10 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
             />
             <span>⚡ Solo Titolari Fissi (≥80%)</span>
           </label>
+
+          <div style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            Mostrati <strong style={{ color: 'var(--text-primary)' }}>{filteredPlayers.length}</strong> su {players.length} calciatori
+          </div>
         </div>
       </div>
 
@@ -351,7 +368,7 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
                           onClick={() => onTogglePin(p.id)}
                           className={`btn-secondary ${isPinned ? 'active' : ''}`}
                           style={{
-                            padding: '6px 12px',
+                            padding: '6px 10px',
                             fontSize: '0.78rem',
                             gap: '5px',
                             background: isPinned ? 'var(--accent-gold)' : 'var(--bg-input)',
@@ -364,12 +381,22 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
                           <span>{isPinned ? 'Bloccato' : 'Blocca'}</span>
                         </button>
 
+                        {onEditPlayer && (
+                          <button
+                            onClick={() => onEditPlayer(p)}
+                            className="btn-icon"
+                            title="Modifica statistiche, squadra o prezzo"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                        )}
+
                         <button
                           onClick={() => onSelectPlayer(p)}
                           className="btn-icon"
                           title="Scheda completa"
                         >
-                          <Info size={15} />
+                          <Info size={14} />
                         </button>
                       </div>
                     </td>

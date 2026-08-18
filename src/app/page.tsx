@@ -18,6 +18,7 @@ import { SquadComparator } from '../components/SquadComparator';
 import { StrategyGuide } from '../components/StrategyGuide';
 import { PlayerModal } from '../components/PlayerModal';
 import { ImportModal } from '../components/ImportModal';
+import { PlayerEditModal } from '../components/PlayerEditModal';
 
 import { 
   Sparkles, 
@@ -43,7 +44,11 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<'pitch' | 'table'>('pitch');
   const [selectedPlayerForModal, setSelectedPlayerForModal] = useState<Player | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  
+  // Modals state
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [playerToEdit, setPlayerToEdit] = useState<Player | null>(null);
 
   // Piano B quick modal state
   const [alternativeTargetPlayer, setAlternativeTargetPlayer] = useState<Player | null>(null);
@@ -171,6 +176,41 @@ export default function Home() {
     showToast('🔄 Ripristinato il listino predefinito.');
   };
 
+  // Add or Edit Player
+  const handleSavePlayer = (saved: Player) => {
+    let updated: Player[];
+    const exists = allPlayers.some(p => p.id === saved.id);
+    if (exists) {
+      updated = allPlayers.map(p => p.id === saved.id ? saved : p);
+      showToast(`✏️ Giocatore ${saved.name} aggiornato!`);
+    } else {
+      updated = [saved, ...allPlayers];
+      showToast(`➕ Nuovo giocatore ${saved.name} aggiunto al listino!`);
+    }
+    setAllPlayers(updated);
+    try {
+      localStorage.setItem(STORAGE_PLAYERS_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    setSquad(optimizeSquad(updated, settings, pinnedIds));
+  };
+
+  // Delete Player
+  const handleDeletePlayer = (playerId: string) => {
+    const player = allPlayers.find(p => p.id === playerId);
+    const updated = allPlayers.filter(p => p.id !== playerId);
+    setAllPlayers(updated);
+    setPinnedIds(prev => prev.filter(id => id !== playerId));
+    try {
+      localStorage.setItem(STORAGE_PLAYERS_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    setSquad(optimizeSquad(updated, settings, pinnedIds.filter(id => id !== playerId)));
+    showToast(`🗑️ ${player?.name || 'Giocatore'} rimosso dal database.`);
+  };
+
   // Toggle player pin
   const handleTogglePin = (playerId: string) => {
     setPinnedIds(prev => {
@@ -267,14 +307,6 @@ export default function Home() {
       <main>
         {activeTab === 'generator' && (
           <div>
-            {/* Notice if custom list imported */}
-            {allPlayers.length !== INITIAL_PLAYERS.length && (
-              <div className="notice-banner" style={{ marginBottom: '16px' }}>
-                <FileSpreadsheet size={18} />
-                <span>Stai utilizzando un listino sincronizzato con <strong>{allPlayers.length} calciatori</strong>.</span>
-              </div>
-            )}
-
             {/* Parameters & Strategy Control Panel */}
             <ConfigPanel
               settings={settings}
@@ -403,6 +435,14 @@ export default function Home() {
             onTogglePin={handleTogglePin}
             onSelectPlayer={(p) => setSelectedPlayerForModal(p)}
             onOpenImport={() => setIsImportModalOpen(true)}
+            onAddNewPlayer={() => {
+              setPlayerToEdit(null);
+              setIsEditModalOpen(true);
+            }}
+            onEditPlayer={(p) => {
+              setPlayerToEdit(p);
+              setIsEditModalOpen(true);
+            }}
           />
         )}
 
@@ -428,6 +468,10 @@ export default function Home() {
           participants={settings.participants}
           isPinned={pinnedIds.includes(selectedPlayerForModal.id)}
           onTogglePin={handleTogglePin}
+          onEditPlayer={(p) => {
+            setPlayerToEdit(p);
+            setIsEditModalOpen(true);
+          }}
         />
       )}
 
@@ -438,6 +482,15 @@ export default function Home() {
         onImportSuccess={handleImportSuccess}
         onResetDefault={handleResetDefault}
         currentPlayersCount={allPlayers.length}
+      />
+
+      {/* Player Edit / Add Modal */}
+      <PlayerEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        playerToEdit={playerToEdit}
+        onSavePlayer={handleSavePlayer}
+        onDeletePlayer={handleDeletePlayer}
       />
 
       {/* Alternative Piano B Quick Swap Modal */}

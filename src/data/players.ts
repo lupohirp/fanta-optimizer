@@ -2444,20 +2444,20 @@ export const INITIAL_PLAYERS: Player[] = [
   },
   {
     id: 'a-11',
-    name: 'Castellanos',
+    name: 'Dia B.',
     team: 'Lazio',
     role: 'A',
-    quotation: 27,
-    estimatedPrice500: 75,
+    quotation: 26,
+    estimatedPrice500: 70,
     expectedPoints: 7.5,
     tier: 2,
     isPenaltyTaker: true,
     isFreeKickTaker: false,
-    starterProbability: 90,
+    starterProbability: 92,
     expectedGoals: 13,
     expectedAssists: 4,
     trend: 'up',
-    notes: 'Titolare del reparto avanzato di Baroni, tanta garra e gol.'
+    notes: 'Centravanti e rigorista di riferimento della Lazio.'
   },
   {
     id: 'a-12',
