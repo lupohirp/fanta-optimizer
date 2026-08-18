@@ -7,6 +7,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { 
       apiKey,
+      model = 'gemini-3.5-flash-lite',
       selectedSlots, 
       remainingBudget, 
       totalBudget, 
@@ -56,7 +57,6 @@ export async function POST(request: Request) {
 
       let pool = allPlayers.filter((p: Player) => p.role === role && !usedIds.has(p.id));
 
-      // For goalkeepers, if a starter team is already chosen, prioritize that team
       if (role === 'P' && keeperTeam) {
         const sameTeam = pool.filter((p: Player) => p.team === keeperTeam);
         if (sameTeam.length > 0) pool = sameTeam;
@@ -75,11 +75,10 @@ export async function POST(request: Request) {
         }))
         .filter((c: any) => c.price <= remainingBudget)
         .sort((a: any, b: any) => {
-          // Sort by starter status and FM
           if (b.starterProb !== a.starterProb) return b.starterProb - a.starterProb;
           return b.fm - a.fm;
         })
-        .slice(0, 35); // Top 35 candidates per missing role
+        .slice(0, 35);
     });
 
     // Build the AI Prompt
@@ -126,8 +125,17 @@ Rispondi ESCLUSIVAMENTE in formato JSON valido con questa struttura:
       candidates: candidatesByRole
     });
 
-    // Try Google AI Studio Gemini models (gemini-2.5-flash -> gemini-2.5-flash-lite -> gemini-2.0-flash)
-    const modelList = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    // Prioritize user selected model (e.g. gemini-3.5-flash-lite)
+    const baseList = [
+      model,
+      'gemini-3.5-flash-lite',
+      'gemini-3.5-flash',
+      'gemini-2.5-flash-lite',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash'
+    ];
+    const modelList = Array.from(new Set(baseList));
+
     let geminiResponseData: any = null;
     let successfulModel = '';
 
@@ -164,7 +172,7 @@ Rispondi ESCLUSIVAMENTE in formato JSON valido con questa struttura:
           }
         }
       } catch (err) {
-        console.warn(`Attempt with ${modelName} failed, trying next model...`, err);
+        console.warn(`Attempt with ${modelName} failed, trying next fallback model...`, err);
       }
     }
 
