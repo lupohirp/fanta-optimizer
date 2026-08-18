@@ -16,6 +16,7 @@ import { PlayerDatabase } from '../components/PlayerDatabase';
 import { SquadComparator } from '../components/SquadComparator';
 import { StrategyGuide } from '../components/StrategyGuide';
 import { PlayerModal } from '../components/PlayerModal';
+import { ImportModal } from '../components/ImportModal';
 
 import { 
   Sparkles, 
@@ -25,17 +26,35 @@ import {
   Share2, 
   Check, 
   Replace,
-  Pin
+  Pin,
+  FileSpreadsheet
 } from 'lucide-react';
+
+const STORAGE_PLAYERS_KEY = 'fanta_optimizer_custom_players';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('generator');
-  const [allPlayers, setAllPlayers] = useState<Player[]>(INITIAL_PLAYERS);
+  const [allPlayers, setAllPlayers] = useState<Player[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_PLAYERS_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return INITIAL_PLAYERS;
+  });
+
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [viewMode, setViewMode] = useState<'pitch' | 'table'>('pitch');
   const [selectedPlayerForModal, setSelectedPlayerForModal] = useState<Player | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Piano B quick modal state
   const [alternativeTargetPlayer, setAlternativeTargetPlayer] = useState<Player | null>(null);
@@ -88,6 +107,34 @@ export default function Home() {
     }, 250);
   }, [allPlayers, settings, pinnedIds]);
 
+  // Import handler for official Excel / CSV file
+  const handleImportSuccess = (newPlayers: Player[]) => {
+    setAllPlayers(newPlayers);
+    try {
+      localStorage.setItem(STORAGE_PLAYERS_KEY, JSON.stringify(newPlayers));
+    } catch (e) {
+      console.error(e);
+    }
+    setPinnedIds([]); // reset pinned ids for new list
+    const generated = optimizeSquad(newPlayers, settings, []);
+    setSquad(generated);
+    showToast(`🎉 Importati ${newPlayers.length} calciatori ufficiali! Rosa ricalcolata.`);
+  };
+
+  // Reset to default
+  const handleResetDefault = () => {
+    setAllPlayers(INITIAL_PLAYERS);
+    try {
+      localStorage.removeItem(STORAGE_PLAYERS_KEY);
+    } catch (e) {
+      console.error(e);
+    }
+    setPinnedIds([]);
+    const generated = optimizeSquad(INITIAL_PLAYERS, settings, []);
+    setSquad(generated);
+    showToast('🔄 Ripristinato il listino predefinito.');
+  };
+
   // Toggle player pin
   const handleTogglePin = (playerId: string) => {
     setPinnedIds(prev => {
@@ -114,16 +161,10 @@ export default function Home() {
 
   // Swap player in current squad
   const handleSwapPlayer = (oldPlayer: Player, newPlayer: Player) => {
-    // Replace in squad
-    const updatedPlayers = squad.players.map(p => p.id === oldPlayer.id ? newPlayer : p);
-    
-    // Also update pinned if old was pinned
-    if (pinnedIds.includes(oldPlayer.id)) {
-      setPinnedIds(prev => [...prev.filter(id => id !== oldPlayer.id), newPlayer.id]);
-    }
-
+    const newPinned = [...pinnedIds.filter(id => id !== oldPlayer.id), newPlayer.id];
+    setPinnedIds(newPinned);
     const customSettings = { ...settings };
-    const reoptimized = optimizeSquad(allPlayers, customSettings, [...pinnedIds.filter(id => id !== oldPlayer.id), newPlayer.id]);
+    const reoptimized = optimizeSquad(allPlayers, customSettings, newPinned);
     setSquad(reoptimized);
     setAlternativeTargetPlayer(null);
     showToast(`✅ Sostituito ${oldPlayer.name} con ${newPlayer.name}!`);
@@ -178,13 +219,23 @@ export default function Home() {
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         onShareWhatsApp={handleShareWhatsApp}
+        onOpenImport={() => setIsImportModalOpen(true)}
         hasSquad={Boolean(squad)}
+        playersCount={allPlayers.length}
       />
 
       {/* Main Tab Content */}
       <main>
         {activeTab === 'generator' && (
           <div>
+            {/* Notice if custom list imported */}
+            {allPlayers.length !== INITIAL_PLAYERS.length && (
+              <div className="notice-banner" style={{ marginBottom: '16px' }}>
+                <FileSpreadsheet size={18} />
+                <span>Stai utilizzando un listino personalizzato con <strong>{allPlayers.length} calciatori</strong>.</span>
+              </div>
+            )}
+
             {/* Parameters & Strategy Control Panel */}
             <ConfigPanel
               settings={settings}
@@ -312,6 +363,7 @@ export default function Home() {
             pinnedIds={pinnedIds}
             onTogglePin={handleTogglePin}
             onSelectPlayer={(p) => setSelectedPlayerForModal(p)}
+            onOpenImport={() => setIsImportModalOpen(true)}
           />
         )}
 
@@ -339,6 +391,15 @@ export default function Home() {
           onTogglePin={handleTogglePin}
         />
       )}
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportSuccess={handleImportSuccess}
+        onResetDefault={handleResetDefault}
+        currentPlayersCount={allPlayers.length}
+      />
 
       {/* Alternative Piano B Quick Swap Modal */}
       {alternativeTargetPlayer && (

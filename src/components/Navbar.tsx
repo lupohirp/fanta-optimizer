@@ -8,7 +8,8 @@ import {
   Users, 
   GitCompare, 
   BookOpen,
-  Share2
+  Share2,
+  FileSpreadsheet
 } from 'lucide-react';
 
 export type TabType = 'generator' | 'live_auction' | 'database' | 'comparator' | 'guide';
@@ -17,14 +18,18 @@ interface NavbarProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   onShareWhatsApp: () => void;
+  onOpenImport: () => void;
   hasSquad: boolean;
+  playersCount: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
   onShareWhatsApp,
-  hasSquad
+  onOpenImport,
+  hasSquad,
+  playersCount
 }) => {
   return (
     <header className="navbar">
@@ -60,7 +65,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => setActiveTab('database')}
         >
           <Users size={16} />
-          <span>Listino Calciatori</span>
+          <span>Listino ({playersCount})</span>
         </button>
 
         <button
@@ -80,17 +85,29 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
       </nav>
 
-      {hasSquad && (
-        <button 
-          onClick={onShareWhatsApp}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <button
+          onClick={onOpenImport}
           className="btn-secondary"
-          style={{ padding: '8px 14px', fontSize: '0.82rem', gap: '6px' }}
-          title="Condividi o copia per WhatsApp"
+          style={{ padding: '8px 12px', fontSize: '0.82rem', gap: '6px' }}
+          title="Carica il file Excel o CSV ufficiale di Fantacalcio.it"
         >
-          <Share2 size={15} />
-          <span>Copia Rosa</span>
+          <FileSpreadsheet size={15} style={{ color: 'var(--accent-emerald-light)' }} />
+          <span>Carica Excel/CSV</span>
         </button>
-      )}
+
+        {hasSquad && (
+          <button 
+            onClick={onShareWhatsApp}
+            className="btn-primary"
+            style={{ padding: '8px 14px', fontSize: '0.82rem', gap: '6px' }}
+            title="Condividi o copia per WhatsApp"
+          >
+            <Share2 size={15} />
+            <span>Copia Rosa</span>
+          </button>
+        )}
+      </div>
     </header>
   );
 };

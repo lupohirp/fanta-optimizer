@@ -13,7 +13,8 @@ import {
   ArrowUpDown,
   Crosshair,
   ShieldAlert,
-  UserCheck
+  UserCheck,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface PlayerDatabaseProps {
@@ -23,6 +24,7 @@ interface PlayerDatabaseProps {
   pinnedIds: string[];
   onTogglePin: (playerId: string) => void;
   onSelectPlayer: (player: Player) => void;
+  onOpenImport?: () => void;
 }
 
 export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
@@ -31,7 +33,8 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
   participants,
   pinnedIds,
   onTogglePin,
-  onSelectPlayer
+  onSelectPlayer,
+  onOpenImport
 }) => {
   const [filters, setFilters] = useState<FilterOptions>({
     search: '',
@@ -114,8 +117,21 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
               Esplora statistiche, fanta-medie, rigoristi e blocca i tuoi preferiti per l'algoritmo
             </p>
           </div>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            Mostrati <strong style={{ color: 'var(--text-primary)' }}>{filteredPlayers.length}</strong> su {players.length} calciatori
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+              Mostrati <strong style={{ color: 'var(--text-primary)' }}>{filteredPlayers.length}</strong> su {players.length} calciatori
+            </div>
+
+            {onOpenImport && (
+              <button
+                onClick={onOpenImport}
+                className="btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '0.78rem', gap: '6px' }}
+              >
+                <FileSpreadsheet size={14} style={{ color: 'var(--accent-emerald-light)' }} />
+                <span>Carica Listino (.xlsx/.csv)</span>
+              </button>
+            )}
           </div>
         </div>
 
