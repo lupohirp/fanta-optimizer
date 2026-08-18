@@ -324,92 +324,16 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     });
   };
 
-  // Magic Autocomplete with Google Gemini AI or local optimizer fallback
+  // Autocomplete: la selezione la fa l'ottimizzatore esatto locale (budget e
+  // vincoli garantiti), Gemini scrive solo la review tattica della rosa completata
   const handleMagicFill = async () => {
     setIsAiLoading(true);
     setAiTacticalReview(null);
 
-    try {
-      // Call Google AI Studio Gemini API (reads GEMINI_API_KEY from server env)
-      const response = await fetch('/api/ai-autocomplete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: settings.geminiModel || 'gemini-3.5-flash-lite',
-          selectedSlots,
-          remainingBudget,
-          totalBudget,
-          participants,
-          strategy: settings.strategy,
-          allPlayers
-        })
-      });
-
-      const result = await response.json();
-
-      if (result.success && result.filledPlayers) {
-        const nextSlots = {
-          P: [...selectedSlots.P],
-          D: [...selectedSlots.D],
-          C: [...selectedSlots.C],
-          A: [...selectedSlots.A]
-        };
-
-        const used = new Set(currentPlayers.map(p => p.id));
-
-        (['P', 'D', 'C', 'A'] as Role[]).forEach(role => {
-          const playersList: Player[] = result.filledPlayers[role] || [];
-          let pIdx = 0;
-          for (let i = 0; i < nextSlots[role].length; i++) {
-            if (nextSlots[role][i] === null && pIdx < playersList.length) {
-              const p = playersList[pIdx++];
-              if (p && !used.has(p.id)) {
-                nextSlots[role][i] = p;
-                used.add(p.id);
-              }
-            }
-          }
-        });
-
-        // Ensure 100% of all slots are filled: if any slot is still null, fill with local optimizer
-        const stillMissing = (['P', 'D', 'C', 'A'] as Role[]).some(r => nextSlots[r].some(s => s === null));
-        if (stillMissing) {
-          const pinnedIds = (['P', 'D', 'C', 'A'] as Role[]).flatMap(r => nextSlots[r].filter(Boolean).map(p => p!.id));
-          const fallbackGen = optimizeSquad(allPlayers, settings, pinnedIds);
-          (['P', 'D', 'C', 'A'] as Role[]).forEach(role => {
-            const rolePool = fallbackGen.players.filter(p => p.role === role && !used.has(p.id));
-            let fIdx = 0;
-            for (let i = 0; i < nextSlots[role].length; i++) {
-              if (nextSlots[role][i] === null && fIdx < rolePool.length) {
-                const fb = rolePool[fIdx++];
-                nextSlots[role][i] = fb;
-                used.add(fb.id);
-              }
-            }
-          });
-        }
-
-        setSelectedSlots(nextSlots);
-        saveToLocalStorage(nextSlots);
-        setAiTacticalReview({
-          text: result.tacticalReview,
-          model: result.modelUsed || 'gemini-3.5-flash-lite'
-        });
-        setIsAiLoading(false);
-        return;
-      }
-    } catch (e) {
-      console.warn('Gemini AI Autocomplete failed, using local optimizer engine...', e);
-    }
-
-    // Fallback: Local Statistical Optimization Engine
+    // 1. Completamento locale con i giocatori già scelti come pinned;
+    //    seed casuale per proporre un'alternativa diversa a ogni click
     const pinnedIds = currentPlayers.map(p => p.id);
-    const generated = optimizeSquad(allPlayers, settings, pinnedIds);
-
-    const generatedP = generated.players.filter(p => p.role === 'P');
-    const generatedD = generated.players.filter(p => p.role === 'D');
-    const generatedC = generated.players.filter(p => p.role === 'C');
-    const generatedA = generated.players.filter(p => p.role === 'A');
+    const generated = optimizeSquad(allPlayers, settings, pinnedIds, [], Math.floor(Math.random() * 1e9));
 
     const buildRoleSlots = (currentRoleSlots: Array<Player | null>, genPool: Player[]) => {
       const result: Array<Player | null> = [...currentRoleSlots];
@@ -426,18 +350,60 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     };
 
     const nextSlots = {
-      P: buildRoleSlots(selectedSlots.P, generatedP),
-      D: buildRoleSlots(selectedSlots.D, generatedD),
-      C: buildRoleSlots(selectedSlots.C, generatedC),
-      A: buildRoleSlots(selectedSlots.A, generatedA)
+      P: buildRoleSlots(selectedSlots.P, generated.players.filter(p => p.role === 'P')),
+      D: buildRoleSlots(selectedSlots.D, generated.players.filter(p => p.role === 'D')),
+      C: buildRoleSlots(selectedSlots.C, generated.players.filter(p => p.role === 'C')),
+      A: buildRoleSlots(selectedSlots.A, generated.players.filter(p => p.role === 'A'))
     };
 
     setSelectedSlots(nextSlots);
     saveToLocalStorage(nextSlots);
-    setAiTacticalReview({
-      text: 'Rosa completata con l\'algoritmo locale. Assicurati che GEMINI_API_KEY sia impostata nel file .env.local o su Vercel per abilitare Gemini 3.5!'
-    });
     setIsAiLoading(false);
+
+    // 2. Review tattica di Gemini sulla rosa completata (gli slot sono già pieni:
+    //    se la chiamata fallisce si perde solo il commento, non la rosa)
+    const previousIds = new Set(pinnedIds);
+    const squadForReview = (['P', 'D', 'C', 'A'] as Role[]).flatMap(role =>
+      (nextSlots[role].filter(Boolean) as Player[]).map(p => ({
+        name: p.name,
+        role: p.role,
+        team: p.team,
+        price: calculateDynamicPrice(p, totalBudget, participants),
+        fm: p.expectedPoints,
+        starterProb: p.starterProbability,
+        isPenaltyTaker: p.isPenaltyTaker,
+        isNew: !previousIds.has(p.id)
+      }))
+    );
+
+    try {
+      const response = await fetch('/api/ai-autocomplete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: settings.geminiModel || 'gemini-3.5-flash-lite',
+          totalBudget,
+          participants,
+          strategy: settings.strategy,
+          squad: squadForReview
+        })
+      });
+
+      const result = await response.json();
+      if (result.success && result.tacticalReview) {
+        setAiTacticalReview({
+          text: result.tacticalReview,
+          model: result.modelUsed
+        });
+        return;
+      }
+    } catch (e) {
+      console.warn('Review tattica Gemini non disponibile:', e);
+    }
+
+    setAiTacticalReview({
+      text: 'Slot completati con l\'ottimizzatore locale. Configura GEMINI_API_KEY nel file .env.local o su Vercel per ricevere anche la review tattica di Gemini.'
+    });
   };
 
   // Convert to GeneratedSquad and apply
