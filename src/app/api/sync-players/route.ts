@@ -26,6 +26,39 @@ function cleanName(str: string): string {
     .toLowerCase();
 }
 
+function calibratePrice500(quotation: number, role: Role): number {
+  const q = quotation || 1;
+
+  if (role === 'A') {
+    if (q >= 33) return Math.round(160 + (q - 33) * 20); // Lautaro, Malen ~ 180-200 cr
+    if (q >= 28) return Math.round(110 + (q - 28) * 10); // Thuram, Hojlund ~ 120-150 cr
+    if (q >= 22) return Math.round(55 + (q - 22) * 8);   // Kean, Yildiz, Douvikas ~ 60-90 cr
+    if (q >= 15) return Math.round(20 + (q - 15) * 4.5); // Dovbyk, Dia, Cutrone ~ 25-45 cr
+    if (q >= 8)  return Math.round(6 + (q - 8) * 2);     // Castro, Bonny, Esposito ~ 8-18 cr
+    return Math.max(1, Math.round(q * 0.7));
+  } else if (role === 'C') {
+    if (q >= 28) return Math.round(52 + (q - 28) * 5);   // Paz N., McTominay, Calhanoglu ~ 55-68 cr
+    if (q >= 22) return Math.round(34 + (q - 22) * 3);   // Pulisic, Zaccagni, Orsolini ~ 35-50 cr
+    if (q >= 16) return Math.round(18 + (q - 16) * 2.5); // Barella, Reijnders, Da Cunha ~ 18-32 cr
+    if (q >= 10) return Math.round(8 + (q - 10) * 1.6);  // Frendrup, Mandragora, Cataldi ~ 8-16 cr
+    if (q >= 5)  return Math.round(3 + (q - 5) * 1);     // Titolari provincia ~ 3-7 cr
+    return Math.max(1, Math.round(q * 0.5));
+  } else if (role === 'D') {
+    if (q >= 30) return Math.round(48 + (q - 30) * 4);   // Dimarco ~ 55-58 cr
+    if (q >= 24) return Math.round(32 + (q - 24) * 2.5); // Theo, Bremer, Di Lorenzo ~ 32-45 cr
+    if (q >= 17) return Math.round(18 + (q - 17) * 2);   // Buongiorno, Bastoni, Akanji ~ 18-30 cr
+    if (q >= 10) return Math.round(7 + (q - 10) * 1.5);  // Bellanova, Mina, Solet, Martin ~ 7-16 cr
+    if (q >= 5)  return Math.round(3 + (q - 5) * 0.8);   // Zappa, Kempf, Ndiaye ~ 3-6 cr
+    return Math.max(1, Math.round(q * 0.4));
+  } else {
+    if (q >= 25) return Math.round(26 + (q - 25) * 1.2); // Martinez Jo., Sommer, Svilar, Maignan ~ 28-35 cr
+    if (q >= 18) return Math.round(18 + (q - 18) * 1.1); // Di Gregorio, Carnesecchi, De Gea, Meret ~ 18-25 cr
+    if (q >= 10) return Math.round(8 + (q - 10) * 1.2);  // Skorupski, Falcone, Okoye ~ 8-16 cr
+    if (q >= 3)  return Math.round(2 + (q - 3) * 0.5);   // Riserve ~ 2-4 cr
+    return 1;
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const targetSeason = searchParams.get('season') || getCurrentSeason();
@@ -120,7 +153,7 @@ export async function GET(request: Request) {
           starterProbability = quotation >= 18 ? 92 : quotation >= 10 ? 80 : 50;
         }
 
-        let estimatedPrice500 = rawFvm ? Math.max(1, Math.round(rawFvm / 2)) : Math.max(1, quotation);
+        const estimatedPrice500 = calibratePrice500(quotation, role);
 
         let tier: 1 | 2 | 3 | 4 | 5 = 5;
         if (role === 'A') {
@@ -150,7 +183,7 @@ export async function GET(request: Request) {
         }
 
         const budgetPercentage = parseFloat(((estimatedPrice500 / 500) * 100).toFixed(1));
-        const volatility = tier === 1 ? 0.18 : tier === 2 ? 0.25 : tier === 3 ? 0.35 : 0.45;
+        const volatility = tier === 1 ? 0.15 : tier === 2 ? 0.22 : tier === 3 ? 0.30 : 0.40;
         const minAuctionPrice500 = Math.max(1, Math.round(estimatedPrice500 * (1 - volatility)));
         const maxAuctionPrice500 = Math.max(minAuctionPrice500 + 1, Math.round(estimatedPrice500 * (1 + volatility)));
 
