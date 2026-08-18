@@ -14,7 +14,7 @@ const teamMap: Record<string, string> = {
   'FRO': 'Frosinone', 'SAS': 'Sassuolo'
 };
 
-function cleanName(str: string): string {
+function normalize(str: string): string {
   return str
     .replace(/&#xE8;/g, 'e')
     .replace(/&#xE9;/g, 'e')
@@ -22,8 +22,45 @@ function cleanName(str: string): string {
     .replace(/&#xF2;/g, 'o')
     .replace(/&#xF9;/g, 'u')
     .replace(/&#xEC;/g, 'i')
-    .replace(/[\.\s\']/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
     .toLowerCase();
+}
+
+function findHistoricalStats(playerName: string, role: Role, playerTeam: string): any {
+  const allStats: any[] = Object.values(historicalStatsMap);
+  const pNorm = normalize(playerName);
+
+  // 1. Strict Name + Role + Team
+  let match = allStats.find(s => 
+    s.role === role && 
+    normalize(s.name) === pNorm && 
+    (teamMap[s.team] === playerTeam || s.team === playerTeam)
+  );
+  if (match) return match;
+
+  // 2. Strict Name + Role
+  match = allStats.find(s => s.role === role && normalize(s.name) === pNorm);
+  if (match) return match;
+
+  // 3. Surname match + Role + Team
+  match = allStats.find(s => {
+    if (s.role !== role) return false;
+    const isSameTeam = teamMap[s.team] === playerTeam || s.team === playerTeam;
+    if (!isSameTeam) return false;
+    const pSurname = normalize(playerName.split(' ')[0]);
+    const sSurname = normalize(s.name.split(' ')[0]);
+    return pSurname === sSurname;
+  });
+  if (match) return match;
+
+  // 4. Surname token + Role (minimum 4 characters)
+  match = allStats.find(s => {
+    if (s.role !== role) return false;
+    const pSurname = normalize(playerName.split(' ')[0]);
+    const sSurname = normalize(s.name.split(' ')[0]);
+    return pSurname === sSurname && pSurname.length >= 4;
+  });
+  return match || null;
 }
 
 function calibratePrice500(quotation: number, role: Role): number {
@@ -95,8 +132,7 @@ export async function GET(request: Request) {
         const quotation = parseInt(match[4].trim()) || 1;
         const rawFvm = parseInt(match[5].trim()) || null;
 
-        const pClean = cleanName(name);
-        const hist: any = Object.values(historicalStatsMap).find((s: any) => cleanName(s.name) === pClean || cleanName(s.name).includes(pClean) || pClean.includes(cleanName(s.name)));
+        const hist = findHistoricalStats(name, role, team);
 
         let expectedPoints = 6.0;
         let expectedGoals = 0;
