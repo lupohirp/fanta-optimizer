@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { INITIAL_PLAYERS } from '@/data/players';
 import { Player, Role, HistoricalStats } from '@/types';
 import { getCurrentSeason, getPreviousSeason } from '@/lib/season';
-import { calculateProjectedStats } from '@/lib/stats-engine';
+import historicalStatsMap from '@/data/historical_stats_2025_26.json';
 
 export const revalidate = 1800; // Cache for 30 minutes on Vercel
 
@@ -18,7 +18,6 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const targetSeason = searchParams.get('season') || getCurrentSeason();
   const prevSeason1 = getPreviousSeason(targetSeason);
-  const prevSeason2 = getPreviousSeason(prevSeason1);
 
   const officialQuotazioniUrl = `https://www.fantacalcio.it/quotazioni-fantacalcio/${targetSeason}`;
 
@@ -51,24 +50,93 @@ export async function GET(request: Request) {
         const quotation = parseInt(match[4].trim()) || 1;
         const rawFvm = parseInt(match[5].trim()) || null;
 
-        // Genera storico fittizio per benchmarking o statistiche stimate
-        const estimatedHistory: HistoricalStats[] = [
-          {
-            season: prevSeason1,
-            played: quotation >= 15 ? 32 : quotation >= 8 ? 24 : 12,
-            avgRating: parseFloat((5.9 + (quotation * 0.03)).toFixed(2)),
-            fantaAvg: parseFloat((6.0 + (quotation * 0.05)).toFixed(2)),
-            goals: role === 'A' ? (quotation >= 25 ? 16 : quotation >= 15 ? 9 : 3) : (role === 'C' ? (quotation >= 20 ? 7 : 2) : 1),
-            assists: quotation >= 15 ? 5 : 2,
-            penaltiesScored: quotation >= 25 ? 4 : 0,
-            penaltiesTaken: quotation >= 25 ? 4 : 0,
-            yellowCards: 4,
-            redCards: 0
-          }
-        ];
+        const nameKey = name.toLowerCase();
+        const hist = (historicalStatsMap as any)[nameKey] || 
+          Object.values(historicalStatsMap).find((s: any) => s.name.toLowerCase().includes(nameKey) || nameKey.includes(s.name.toLowerCase()));
 
-        const stats = calculateProjectedStats(role, quotation, rawFvm, estimatedHistory, name);
-        const estimatedPrice500 = rawFvm ? Math.max(1, Math.round(rawFvm / 2)) : Math.max(1, quotation);
+        let expectedPoints = 6.0;
+        let expectedGoals = 0;
+        let expectedAssists = 0;
+        let starterProbability = 75;
+        let isPenaltyTaker = quotation >= 25;
+        let isFreeKickTaker = quotation >= 16;
+        let historicalStats: HistoricalStats[] = [];
+
+        if (hist && hist.played > 0) {
+          historicalStats = [{
+            season: prevSeason1,
+            played: hist.played,
+            avgRating: hist.avgRating,
+            fantaAvg: hist.fantaAvg,
+            goals: hist.goals,
+            goalsConceded: hist.goalsConceded,
+            assists: hist.assists,
+            penaltiesScored: hist.penaltiesScored,
+            penaltiesTaken: hist.penaltiesTaken,
+            yellowCards: hist.yellowCards,
+            redCards: hist.redCards
+          }];
+
+          const weightHist = Math.min(0.85, (hist.played / 38) * 0.95);
+          const baseline = quotation >= 25 ? (role === 'A' ? 7.8 : 7.2) : (role === 'A' ? 6.8 : 6.3);
+          expectedPoints = parseFloat((hist.fantaAvg * weightHist + baseline * (1 - weightHist)).toFixed(2));
+          
+          const expMatches = Math.max(22, Math.min(36, Math.round((hist.played / 38) * 36)));
+          const perMatchGoals = hist.played > 0 ? (hist.goals / hist.played) : 0;
+          const perMatchAssists = hist.played > 0 ? (hist.assists / hist.played) : 0;
+
+          expectedGoals = Math.round(perMatchGoals * expMatches);
+          expectedAssists = Math.round(perMatchAssists * expMatches);
+          starterProbability = Math.min(95, Math.round((hist.played / 38) * 100));
+          isPenaltyTaker = hist.penaltiesScored > 0 || isPenaltyTaker;
+        } else {
+          // Stima per giocatori nuovi senza storico Serie A
+          if (role === 'A') {
+            expectedPoints = quotation >= 30 ? 8.2 : quotation >= 20 ? 7.4 : quotation >= 12 ? 6.8 : 6.1;
+            expectedGoals = quotation >= 30 ? 16 : quotation >= 20 ? 10 : quotation >= 12 ? 6 : 2;
+            expectedAssists = quotation >= 20 ? 4 : 1;
+          } else if (role === 'C') {
+            expectedPoints = quotation >= 25 ? 7.3 : quotation >= 18 ? 6.7 : quotation >= 10 ? 6.3 : 5.9;
+            expectedGoals = quotation >= 20 ? 7 : quotation >= 12 ? 3 : 1;
+            expectedAssists = quotation >= 18 ? 5 : 2;
+          } else if (role === 'D') {
+            expectedPoints = quotation >= 18 ? 6.5 : quotation >= 12 ? 6.2 : 5.8;
+            expectedGoals = quotation >= 15 ? 2 : 0;
+            expectedAssists = quotation >= 15 ? 4 : 1;
+          } else {
+            expectedPoints = quotation >= 14 ? 5.5 : 5.0;
+          }
+          starterProbability = quotation >= 18 ? 92 : quotation >= 10 ? 80 : 50;
+        }
+
+        let estimatedPrice500 = rawFvm ? Math.max(1, Math.round(rawFvm / 2)) : Math.max(1, quotation);
+
+        let tier: 1 | 2 | 3 | 4 | 5 = 5;
+        if (role === 'A') {
+          if (estimatedPrice500 >= 80) tier = 1;
+          else if (estimatedPrice500 >= 35) tier = 2;
+          else if (estimatedPrice500 >= 14) tier = 3;
+          else if (estimatedPrice500 >= 5) tier = 4;
+          else tier = 5;
+        } else if (role === 'C') {
+          if (estimatedPrice500 >= 35) tier = 1;
+          else if (estimatedPrice500 >= 18) tier = 2;
+          else if (estimatedPrice500 >= 7) tier = 3;
+          else if (estimatedPrice500 >= 3) tier = 4;
+          else tier = 5;
+        } else if (role === 'D') {
+          if (estimatedPrice500 >= 20) tier = 1;
+          else if (estimatedPrice500 >= 10) tier = 2;
+          else if (estimatedPrice500 >= 5) tier = 3;
+          else if (estimatedPrice500 >= 2) tier = 4;
+          else tier = 5;
+        } else {
+          if (estimatedPrice500 >= 22) tier = 1;
+          else if (estimatedPrice500 >= 12) tier = 2;
+          else if (estimatedPrice500 >= 5) tier = 3;
+          else if (estimatedPrice500 >= 2) tier = 4;
+          else tier = 5;
+        }
 
         parsedPlayers.push({
           id: `p-${targetSeason}-${idCounter++}`,
@@ -77,17 +145,16 @@ export async function GET(request: Request) {
           role,
           quotation,
           estimatedPrice500,
-          expectedPoints: stats.projectedFantaAvg,
-          tier: stats.tier,
-          isPenaltyTaker: stats.isPenaltyTaker,
-          isFreeKickTaker: stats.isFreeKickTaker,
-          starterProbability: stats.starterProbability,
-          expectedGoals: stats.projectedGoals,
-          expectedAssists: stats.projectedAssists,
+          expectedPoints,
+          tier,
+          isPenaltyTaker,
+          isFreeKickTaker,
+          starterProbability,
+          expectedGoals,
+          expectedAssists,
           trend: 'stable',
-          notes: `Listone ufficiale Fantacalcio.it ${targetSeason} • FM Storica t-1: ${estimatedHistory[0].fantaAvg}`,
-          historicalStats: estimatedHistory,
-          valueIndex: stats.valueIndex
+          notes: hist ? `Listone ${targetSeason} • Storico ${prevSeason1}: ${hist.played} PG, FM ${hist.fantaAvg}, ${hist.goals} Gol, ${hist.assists} Assist` : `Listone ${targetSeason} • Quotazione ${quotation} • FVM ${rawFvm || quotation}`,
+          historicalStats
         });
       }
 
@@ -103,7 +170,7 @@ export async function GET(request: Request) {
       }
     }
   } catch (e) {
-    // Fallback on preloaded 2026/27 data
+    // Fallback
   }
 
   return NextResponse.json({
