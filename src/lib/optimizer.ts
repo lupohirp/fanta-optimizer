@@ -169,6 +169,18 @@ const FORMATIONS: Record<string, { D: number; C: number; A: number }> = {
   '4-2-3-1': { D: 4, C: 5, A: 1 },
 };
 
+/**
+ * Moduli ammessi: con modulo esplicito solo quello; con 'auto' tutti,
+ * MA se il modificatore difesa è attivo solo i moduli a 4+ difensori,
+ * perché il modificatore scatta soltanto schierandone almeno 4 e il suo
+ * bonus non è visibile nella semplice somma dei punti attesi dell'XI.
+ */
+function allowedFormations(settings: LeagueSettings): string[] {
+  if (settings.targetFormation !== 'auto') return [settings.targetFormation];
+  const names = Object.keys(FORMATIONS);
+  return settings.defenseModifier ? names.filter(n => FORMATIONS[n].D >= 4) : names;
+}
+
 interface Candidate {
   player: Player;
   price: number;     // prezzo in unità DP (>= 1)
@@ -436,10 +448,11 @@ export function optimizeSquad(
   const unit = Math.max(1, Math.ceil(totalBudget / 1200));
   const toUnits = (credits: number) => Math.max(1, Math.ceil(credits / unit));
 
-  // Modulo di riferimento per decidere quanti slot sono "da titolare" in ogni reparto
-  const shapeName = settings.targetFormation !== 'auto'
-    ? settings.targetFormation
-    : ((STRATEGIES[settings.strategy] || STRATEGIES.balanced).recommendedFormation);
+  // Modulo di riferimento per decidere quanti slot sono "da titolare" in ogni reparto:
+  // quello consigliato dalla strategia se ammesso, altrimenti il primo modulo ammesso
+  const allowed = allowedFormations(settings);
+  const recommended = (STRATEGIES[settings.strategy] || STRATEGIES.balanced).recommendedFormation;
+  const shapeName = allowed.includes(recommended) ? recommended : allowed[0];
   const shape = FORMATIONS[shapeName] || FORMATIONS['3-4-3'];
 
   const outfieldRoles: Role[] = ['D', 'C', 'A'];
@@ -679,9 +692,7 @@ function selectStartingXI(
     A: players.filter(p => p.role === 'A').sort((a, b) => b.expectedPoints - a.expectedPoints),
   };
 
-  const candidates = settings.targetFormation === 'auto'
-    ? Object.keys(FORMATIONS)
-    : [settings.targetFormation];
+  const candidates = allowedFormations(settings);
 
   let best: { formation: string; startingXI: Player[]; points: number } | null = null;
 
