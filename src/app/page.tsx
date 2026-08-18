@@ -19,6 +19,7 @@ import { SquadComparator } from '../components/SquadComparator';
 import { StrategyGuide } from '../components/StrategyGuide';
 import { PlayerModal } from '../components/PlayerModal';
 import { PlayerEditModal } from '../components/PlayerEditModal';
+import { CustomSquadBuilder } from '../components/CustomSquadBuilder';
 
 import { 
   Sparkles, 
@@ -387,6 +388,21 @@ export default function Home() {
               />
             )}
           </div>
+        )}
+
+        {activeTab === 'custom_builder' && (
+          <CustomSquadBuilder
+            allPlayers={allPlayers}
+            settings={settings}
+            totalBudget={settings.totalBudget}
+            participants={settings.participants}
+            onSaveToMainSquad={(customSq) => {
+              setSquad(customSq);
+              setActiveTab('generator');
+              showToast('✅ Rosa custom applicata!');
+            }}
+            onSelectPlayerModal={(p) => setSelectedPlayerForModal(p)}
+          />
         )}
 
         {activeTab === 'live_auction' && (

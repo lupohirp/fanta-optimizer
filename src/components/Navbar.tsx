@@ -10,10 +10,10 @@ import {
   BookOpen, 
   Share2, 
   RefreshCw,
-  Radio
+  Hammer
 } from 'lucide-react';
 
-export type TabType = 'generator' | 'live_auction' | 'database' | 'comparator' | 'guide';
+export type TabType = 'generator' | 'custom_builder' | 'live_auction' | 'database' | 'comparator' | 'guide';
 
 interface NavbarProps {
   activeTab: TabType;
@@ -72,7 +72,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 background: isSyncing ? '#f59e0b' : '#10b981',
                 boxShadow: isSyncing ? '0 0 8px #f59e0b' : '0 0 8px #10b981'
               }} />
-              <span>{isSyncing ? 'Sincronizzazione in corso...' : `Live 2026/27: ${lastSyncTime}`}</span>
+              <span>{isSyncing ? 'Sincronizzazione...' : `Live 2026/27: ${lastSyncTime}`}</span>
               <RefreshCw size={10} className={isSyncing ? 'spin' : ''} style={{ marginLeft: '2px' }} />
             </span>
           </div>
@@ -85,7 +85,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => setActiveTab('generator')}
         >
           <Sparkles size={16} />
-          <span>Generatore Rose</span>
+          <span>Generatore AI</span>
+        </button>
+
+        <button
+          className={`nav-tab-btn ${activeTab === 'custom_builder' ? 'active' : ''}`}
+          onClick={() => setActiveTab('custom_builder')}
+        >
+          <Hammer size={16} />
+          <span>Costruttore Custom</span>
         </button>
 
         <button
@@ -93,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => setActiveTab('live_auction')}
         >
           <Gavel size={16} />
-          <span>Assistente Asta Live</span>
+          <span>Asta Live</span>
         </button>
 
         <button
@@ -109,7 +117,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => setActiveTab('comparator')}
         >
           <GitCompare size={16} />
-          <span>Confronta Strategie</span>
+          <span>Confronta</span>
         </button>
 
         <button
@@ -117,7 +125,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => setActiveTab('guide')}
         >
           <BookOpen size={16} />
-          <span>Guida & Tips</span>
+          <span>Guida</span>
         </button>
       </nav>
 
@@ -129,7 +137,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           title="Sincronizza quotazioni ufficiali Fantacalcio.it 2026/27"
         >
           <RefreshCw size={14} className={isSyncing ? 'spin' : ''} style={{ color: 'var(--accent-emerald-light)' }} />
-          <span>Aggiorna Listone</span>
+          <span>Aggiorna Dati</span>
         </button>
 
         {hasSquad && (
