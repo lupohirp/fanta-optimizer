@@ -20,6 +20,7 @@ import { StrategyGuide } from '../components/StrategyGuide';
 import { PlayerModal } from '../components/PlayerModal';
 import { PlayerEditModal } from '../components/PlayerEditModal';
 import { CustomSquadBuilder } from '../components/CustomSquadBuilder';
+import { SquadJudgeModal, SquadEvaluation } from '../components/SquadJudgeModal';
 
 import { 
   Sparkles, 
@@ -30,7 +31,8 @@ import {
   Check, 
   Replace,
   Pin,
-  RefreshCw
+  RefreshCw,
+  Trophy
 } from 'lucide-react';
 
 const STORAGE_PLAYERS_KEY = 'fanta_optimizer_official_2026_27_v8';
@@ -54,6 +56,11 @@ export default function Home() {
   // Piano B quick modal state
   const [alternativeTargetPlayer, setAlternativeTargetPlayer] = useState<Player | null>(null);
   const [alternativeList, setAlternativeList] = useState<Player[]>([]);
+
+  // Squad Judge modal state
+  const [isJudgeModalOpen, setIsJudgeModalOpen] = useState(false);
+  const [judgeEvaluation, setJudgeEvaluation] = useState<SquadEvaluation | null>(null);
+  const [isJudging, setIsJudging] = useState(false);
 
   // League settings with dynamic season
   const [settings, setSettings] = useState<LeagueSettings>({
@@ -237,6 +244,35 @@ export default function Home() {
     showToast('📥 Download file CSV avviato!');
   };
 
+  // Judge Current Squad
+  const handleJudgeCurrentSquad = async () => {
+    if (!squad || squad.players.length === 0) {
+      showToast('Nessuna rosa generata da giudicare');
+      return;
+    }
+    setIsJudgeModalOpen(true);
+    setIsJudging(true);
+    try {
+      const res = await fetch('/api/judge-squad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          players: squad.players,
+          settings,
+          model: settings.geminiModel || 'gemini-3.5-flash-lite'
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.evaluation) {
+        setJudgeEvaluation(data.evaluation);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsJudging(false);
+    }
+  };
+
   return (
     <div className="app-container">
       {/* Toast Notification */}
@@ -345,7 +381,17 @@ export default function Home() {
                 </button>
               </div>
 
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={handleJudgeCurrentSquad}
+                  className="btn-secondary"
+                  style={{ padding: '8px 14px', fontSize: '0.82rem', gap: '6px', background: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)', color: '#fbbf24' }}
+                  title="Ottieni pagelle e voto da Google Gemini AI"
+                >
+                  <Trophy size={14} />
+                  <span>🏆 Giudica Rosa (AI)</span>
+                </button>
+
                 <button
                   onClick={handleExportCSV}
                   className="btn-secondary"
@@ -553,6 +599,17 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Squad Judge Modal */}
+      <SquadJudgeModal
+        isOpen={isJudgeModalOpen}
+        onClose={() => setIsJudgeModalOpen(false)}
+        evaluation={judgeEvaluation}
+        isLoading={isJudging}
+        squadName={squad.name || 'Rosa Ottimizzata'}
+        totalPlayersCount={squad.players.length}
+        modelUsed={settings.geminiModel || 'gemini-3.5-flash-lite'}
+      />
     </div>
   );
 }

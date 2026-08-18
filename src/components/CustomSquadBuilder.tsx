@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Player, Role, LeagueSettings, GeneratedSquad } from '../types';
 import { calculateDynamicPrice, optimizeSquad } from '../lib/optimizer';
+import { SquadJudgeModal, SquadEvaluation } from './SquadJudgeModal';
 import { 
   Plus, 
   Trash2, 
@@ -28,7 +29,8 @@ import {
   Edit3,
   Bot,
   RefreshCw,
-  Sparkle
+  Sparkle,
+  Trophy
 } from 'lucide-react';
 
 const STORAGE_CUSTOM_SQUAD_KEY = 'fanta_optimizer_custom_squad_state_v3';
@@ -65,6 +67,11 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
 
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiTacticalReview, setAiTacticalReview] = useState<{ text: string; model?: string } | null>(null);
+
+  // Squad Judge modal state
+  const [isJudgeModalOpen, setIsJudgeModalOpen] = useState(false);
+  const [judgeEvaluation, setJudgeEvaluation] = useState<SquadEvaluation | null>(null);
+  const [isJudging, setIsJudging] = useState(false);
 
   // Load from localStorage on mount and preserve user custom prices
   useEffect(() => {
@@ -206,6 +213,38 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     return { fm, goals, assists };
   }, [currentPlayers, selectedSlots]);
 
+  // Judge Squad Handler
+  const handleJudgeSquad = async () => {
+    if (currentPlayers.length === 0) {
+      alert('Inserisci almeno alcuni calciatori nella rosa prima di richiedere il giudizio!');
+      return;
+    }
+
+    setIsJudgeModalOpen(true);
+    setIsJudging(true);
+
+    try {
+      const res = await fetch('/api/judge-squad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          players: currentPlayers,
+          settings,
+          model: settings.geminiModel || 'gemini-3.5-flash-lite'
+        })
+      });
+
+      const data = await res.json();
+      if (data.success && data.evaluation) {
+        setJudgeEvaluation(data.evaluation);
+      }
+    } catch (e) {
+      console.error('Error judging squad:', e);
+    } finally {
+      setIsJudging(false);
+    }
+  };
+
   // Add player to slot
   const handleAssignPlayer = (player: Player, autoFillSameTeamKeepers = false) => {
     if (!activePickerRole || activePickerIndex === null) return;
@@ -242,7 +281,8 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
       const list = [...prev[role]];
       const p = list[index];
       if (p) {
-        const price500 = Math.max(1, Math.round(newPrice * (500 / totalBudget)));
+        const safePrice = Math.max(1, newPrice);
+        const price500 = Math.max(1, Math.round(safePrice * (500 / totalBudget)));
         list[index] = {
           ...p,
           estimatedPrice500: price500,
@@ -519,6 +559,17 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
           </div>
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Judge Squad Button */}
+            <button
+              onClick={handleJudgeSquad}
+              className="btn-secondary"
+              style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px', background: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)', color: '#fbbf24' }}
+              title="Ottieni pagelle, voto globale e analisi reparto per reparto da Google Gemini AI"
+            >
+              <Trophy size={15} />
+              <span>🏆 Giudica Rosa (AI)</span>
+            </button>
+
             <button
               onClick={handleMagicFill}
               disabled={isAiLoading}
@@ -1034,6 +1085,17 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
           </div>
         </div>
       )}
+
+      {/* Squad Judge Modal */}
+      <SquadJudgeModal
+        isOpen={isJudgeModalOpen}
+        onClose={() => setIsJudgeModalOpen(false)}
+        evaluation={judgeEvaluation}
+        isLoading={isJudging}
+        squadName="Rosa Custom Personale"
+        totalPlayersCount={currentPlayers.length}
+        modelUsed={settings.geminiModel || 'gemini-3.5-flash-lite'}
+      />
     </div>
   );
 };
