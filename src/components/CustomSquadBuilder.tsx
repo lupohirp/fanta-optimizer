@@ -274,7 +274,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     setAiTacticalReview(null);
 
     try {
-      // Try Google AI Studio Gemini route (reads GEMINI_API_KEY from server env)
+      // Call Google AI Studio Gemini API (reads GEMINI_API_KEY from server env)
       const response = await fetch('/api/ai-autocomplete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -291,8 +291,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
 
       const result = await response.json();
 
-      if (result.success && result.selectedPlayerIds) {
-        // Map player IDs returned by Gemini into empty slots
+      if (result.success && result.filledPlayers) {
         const nextSlots = {
           P: [...selectedSlots.P],
           D: [...selectedSlots.D],
@@ -300,22 +299,45 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
           A: [...selectedSlots.A]
         };
 
+        const used = new Set(currentPlayers.map(p => p.id));
+
         (['P', 'D', 'C', 'A'] as Role[]).forEach(role => {
-          const ids: string[] = result.selectedPlayerIds[role] || [];
-          let idIdx = 0;
+          const playersList: Player[] = result.filledPlayers[role] || [];
+          let pIdx = 0;
           for (let i = 0; i < nextSlots[role].length; i++) {
-            if (nextSlots[role][i] === null && idIdx < ids.length) {
-              const matched = allPlayers.find(p => p.id === ids[idIdx++]);
-              if (matched) nextSlots[role][i] = matched;
+            if (nextSlots[role][i] === null && pIdx < playersList.length) {
+              const p = playersList[pIdx++];
+              if (p && !used.has(p.id)) {
+                nextSlots[role][i] = p;
+                used.add(p.id);
+              }
             }
           }
         });
+
+        // Ensure 100% of all slots are filled: if any slot is still null, fill with local optimizer
+        const stillMissing = (['P', 'D', 'C', 'A'] as Role[]).some(r => nextSlots[r].some(s => s === null));
+        if (stillMissing) {
+          const pinnedIds = (['P', 'D', 'C', 'A'] as Role[]).flatMap(r => nextSlots[r].filter(Boolean).map(p => p!.id));
+          const fallbackGen = optimizeSquad(allPlayers, settings, pinnedIds);
+          (['P', 'D', 'C', 'A'] as Role[]).forEach(role => {
+            const rolePool = fallbackGen.players.filter(p => p.role === role && !used.has(p.id));
+            let fIdx = 0;
+            for (let i = 0; i < nextSlots[role].length; i++) {
+              if (nextSlots[role][i] === null && fIdx < rolePool.length) {
+                const fb = rolePool[fIdx++];
+                nextSlots[role][i] = fb;
+                used.add(fb.id);
+              }
+            }
+          });
+        }
 
         setSelectedSlots(nextSlots);
         saveToLocalStorage(nextSlots);
         setAiTacticalReview({
           text: result.tacticalReview,
-          model: result.modelUsed || 'Google Gemini 2.5 Flash'
+          model: result.modelUsed || 'gemini-3.5-flash-lite'
         });
         setIsAiLoading(false);
         return;
@@ -357,7 +379,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     setSelectedSlots(nextSlots);
     saveToLocalStorage(nextSlots);
     setAiTacticalReview({
-      text: 'Rosa completata con l\'algoritmo euristico locale (Titolari fissi garantiti e tris portieri). Per attivare Google Gemini AI, inserisci la chiave gratuita nelle impostazioni!'
+      text: 'Rosa completata con l\'algoritmo locale. Assicurati che GEMINI_API_KEY sia impostata nel file .env.local o su Vercel per abilitare Gemini 3.5!'
     });
     setIsAiLoading(false);
   };
@@ -476,7 +498,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               </span>
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Componi la tua rosa o lascia che Google Gemini AI completi gli slot vuoti con la migliore combinazione
+              Componi la tua rosa o lascia che Google Gemini 3.5 completi tutti gli slot con la migliore combinazione
             </p>
           </div>
 
@@ -486,7 +508,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               disabled={isAiLoading}
               className="btn-primary"
               style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px' }}
-              title="Completa gli slot vuoti con Google Gemini 2.5 Flash AI"
+              title="Completa gli slot vuoti con Google Gemini AI"
             >
               {isAiLoading ? (
                 <>

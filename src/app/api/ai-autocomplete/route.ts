@@ -2,6 +2,46 @@ import { NextResponse } from 'next/server';
 import { Player, Role, LeagueSettings } from '@/types';
 import { calculateDynamicPrice } from '@/lib/optimizer';
 
+function normalize(str: string): string {
+  return str
+    .replace(/&#xE8;/g, 'e')
+    .replace(/&#xE9;/g, 'e')
+    .replace(/&#xE0;/g, 'a')
+    .replace(/&#xF2;/g, 'o')
+    .replace(/&#xF9;/g, 'u')
+    .replace(/&#xEC;/g, 'i')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase();
+}
+
+function findMatchingPlayer(idOrName: string, role: Role, allPlayers: Player[]): Player | undefined {
+  if (!idOrName) return undefined;
+  const clean = idOrName.trim();
+  const norm = normalize(clean);
+
+  // 1. Direct ID match
+  let p = allPlayers.find(pl => pl.id === clean && pl.role === role);
+  if (p) return p;
+
+  // 2. Direct name match
+  p = allPlayers.find(pl => pl.role === role && pl.name.toLowerCase() === clean.toLowerCase());
+  if (p) return p;
+
+  // 3. Normalized name match
+  p = allPlayers.find(pl => pl.role === role && normalize(pl.name) === norm);
+  if (p) return p;
+
+  // 4. Surname match
+  const surname = normalize(clean.split(' ')[0]);
+  if (surname.length >= 3) {
+    p = allPlayers.find(pl => pl.role === role && normalize(pl.name.split(' ')[0]) === surname);
+    if (p) return p;
+  }
+
+  // 5. Fallback without role constraint if unique
+  return allPlayers.find(pl => pl.id === clean || normalize(pl.name) === norm);
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -22,7 +62,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: false,
         error: 'NO_API_KEY',
-        message: 'Nessuna API Key di Google AI Studio configurata. Puoi inserire la tua chiave gratuita nelle impostazioni o continuare con l\'ottimizzatore locale.'
+        message: 'Nessuna API Key di Google AI Studio configurata nel file .env.local (GEMINI_API_KEY).'
       });
     }
 
@@ -44,7 +84,7 @@ export async function POST(request: Request) {
     const usedIds = new Set(currentlyChosen.map(p => p.id));
     const keeperTeam = selectedSlots.P.find((p: any) => p !== null)?.team;
 
-    // Filter candidate pool to reduce token size and give Gemini the most relevant players
+    // Filter candidate pool to give Gemini the most relevant players
     const candidatesByRole: Record<Role, any[]> = {
       P: [],
       D: [],
@@ -78,37 +118,34 @@ export async function POST(request: Request) {
           if (b.starterProb !== a.starterProb) return b.starterProb - a.starterProb;
           return b.fm - a.fm;
         })
-        .slice(0, 35);
+        .slice(0, 40);
     });
 
     // Build the AI Prompt
     const systemPrompt = `Sei un esperto astologo e fanta-allenatore professionista di Fantacalcio Serie A.
-Il tuo compito è completare gli slot mancanti di una rosa di 25 giocatori nel rispetto del budget residuo e delle regole del Fantacalcio:
+Il tuo compito è completare ESATTAMENTE il numero di slot vuoti richiesti per ciascun reparto, selezionando i migliori calciatori dalla lista dei candidati fornita.
 
-REGOLE TATTICHE FONDAMENTALI:
-1. TITOLARITÀ (Certezza di voto): Scegli sempre giocatori con alta titolarità (≥80-95%) per evitare il rischio s.v.
-2. RIPARTIZIONE BUDGET:
-   - Attacco: ~45-55% del budget residuo
-   - Centrocampo: ~25-32% del budget residuo
-   - Difesa: ~15-18% del budget residuo
-   - Porta: ~6-8% del budget residuo
-3. BLOCCO PORTIERI: I 3 portieri devono appartenere TUTTI alla STESSA SQUADRA (titolare + riserve).
-4. BUDGET RESIDUO: La somma dei prezzi dei giocatori scelti non deve superare il budget residuo (${remainingBudget} crediti).
-5. SLOT MANCANTI:
-   - Portieri (P): ${missingCounts.P} giocatori
-   - Difensori (D): ${missingCounts.D} giocatori
-   - Centrocampisti (C): ${missingCounts.C} giocatori
-   - Attaccanti (A): ${missingCounts.A} giocatori
+REGOLE OBBLIGATORIE:
+1. QUANTITÀ ESATTA DI GIOCATORI DA SCEGLIERE:
+   - Portieri (P): devi scegliere ESATTAMENTE ${missingCounts.P} giocatori
+   - Difensori (D): devi scegliere ESATTAMENTE ${missingCounts.D} giocatori
+   - Centrocampisti (C): devi scegliere ESATTAMENTE ${missingCounts.C} giocatori
+   - Attaccanti (A): devi scegliere ESATTAMENTE ${missingCounts.A} giocatori
 
-Rispondi ESCLUSIVAMENTE in formato JSON valido con questa struttura:
+2. TITOLARITÀ (Certezza di voto): Scegli sempre giocatori con titolarità alta (≥80-95%) per evitare s.v.
+3. BLOCCO PORTIERI: I 3 portieri devono essere TUTTI della STESSA SQUADRA.
+4. BUDGET RESIDUO: La somma dei prezzi di TUTTI i giocatori scelti non deve superare ${remainingBudget} crediti.
+5. Usa ESATTAMENTE gli ID e i NOMI presenti nella lista dei candidati.
+
+Rispondi ESCLUSIVAMENTE in JSON valido con questa struttura:
 {
-  "selectedPlayerIds": {
-    "P": ["id1", ...],
-    "D": ["id1", ...],
-    "C": ["id1", ...],
-    "A": ["id1", ...]
+  "selectedPlayers": {
+    "P": [{"id": "...", "name": "...", "price": 0}],
+    "D": [{"id": "...", "name": "...", "price": 0}],
+    "C": [{"id": "...", "name": "...", "price": 0}],
+    "A": [{"id": "...", "name": "...", "price": 0}]
   },
-  "tacticalReview": "Breve sintesi (2-3 frasi) in italiano sulla strategia adottata per questi acquisti"
+  "tacticalReview": "Breve commento tattico (2-3 frasi) in italiano che spiega la composizione della rosa"
 }`;
 
     const userContent = JSON.stringify({
@@ -125,7 +162,7 @@ Rispondi ESCLUSIVAMENTE in formato JSON valido con questa struttura:
       candidates: candidatesByRole
     });
 
-    // Prioritize user selected model (e.g. gemini-3.5-flash-lite)
+    // Prioritize user selected model
     const baseList = [
       model,
       'gemini-3.5-flash-lite',
@@ -151,12 +188,12 @@ Rispondi ESCLUSIVAMENTE in formato JSON valido con questa struttura:
                 role: 'user',
                 parts: [
                   { text: systemPrompt },
-                  { text: `DATI ROSA E CANDIDATI:\n${userContent}` }
+                  { text: `DATI CANDIDATI ED ESIGENZE ROSA:\n${userContent}` }
                 ]
               }
             ],
             generationConfig: {
-              temperature: 0.2,
+              temperature: 0.15,
               responseMimeType: 'application/json'
             }
           })
@@ -176,7 +213,7 @@ Rispondi ESCLUSIVAMENTE in formato JSON valido con questa struttura:
       }
     }
 
-    if (!geminiResponseData || !geminiResponseData.selectedPlayerIds) {
+    if (!geminiResponseData) {
       return NextResponse.json({
         success: false,
         error: 'AI_RESPONSE_INVALID',
@@ -184,10 +221,32 @@ Rispondi ESCLUSIVAMENTE in formato JSON valido con questa struttura:
       });
     }
 
+    // Extract players list by role from Gemini output
+    const filledByRole: Record<Role, Player[]> = {
+      P: [],
+      D: [],
+      C: [],
+      A: []
+    };
+
+    const selObj = geminiResponseData.selectedPlayers || geminiResponseData.selectedPlayerIds || {};
+
+    (['P', 'D', 'C', 'A'] as Role[]).forEach(role => {
+      const list = selObj[role] || [];
+      list.forEach((item: any) => {
+        const idOrName = typeof item === 'string' ? item : (item.id || item.name);
+        const match = findMatchingPlayer(idOrName, role, allPlayers);
+        if (match && !usedIds.has(match.id)) {
+          filledByRole[role].push(match);
+          usedIds.add(match.id);
+        }
+      });
+    });
+
     return NextResponse.json({
       success: true,
       modelUsed: successfulModel,
-      selectedPlayerIds: geminiResponseData.selectedPlayerIds,
+      filledPlayers: filledByRole,
       tacticalReview: geminiResponseData.tacticalReview || 'Rosa completata con successo con Google Gemini AI!'
     });
 
