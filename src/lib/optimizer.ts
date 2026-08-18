@@ -1,9 +1,8 @@
-import { 
-  Player, 
-  Role, 
-  LeagueSettings, 
-  GeneratedSquad, 
-  StrategyType 
+import {
+  Player,
+  Role,
+  LeagueSettings,
+  GeneratedSquad
 } from '../types';
 import { STRATEGIES } from '../data/players';
 
@@ -17,7 +16,7 @@ export function calculateDynamicPrice(
 ): number {
   const baseBudget = 500;
   const budgetRatio = totalBudget / baseBudget;
-  
+
   // Fattore di scarsità basato sul numero di squadre nella lega
   const scarcityFactor = participants >= 12 ? 1.25 : participants >= 10 ? 1.12 : participants === 6 ? 0.88 : 1.0;
 
@@ -54,9 +53,9 @@ export function getPlayerAuctionRange(
   const avg = calculateDynamicPrice(player, totalBudget, participants);
   const budgetPercentage = parseFloat(((avg / totalBudget) * 100).toFixed(1));
 
-  let volatility = player.tier === 1 ? 0.18 : player.tier === 2 ? 0.25 : player.tier === 3 ? 0.35 : 0.45;
-  let min = Math.max(1, Math.round(avg * (1 - volatility)));
-  let max = Math.max(min + 1, Math.round(avg * (1 + volatility)));
+  const volatility = player.tier === 1 ? 0.18 : player.tier === 2 ? 0.25 : player.tier === 3 ? 0.35 : 0.45;
+  const min = Math.max(1, Math.round(avg * (1 - volatility)));
+  const max = Math.max(min + 1, Math.round(avg * (1 + volatility)));
 
   return { avg, min, max, budgetPercentage };
 }
@@ -89,45 +88,6 @@ export function getStrategyWeights(settings: LeagueSettings): { P: number; D: nu
     A: weights.A / sum,
   };
 }
-
-/**
- * Configurazione degli slot per ruolo con target di prezzo, tier e titolarità minima
- */
-const SLOT_CONFIGS: Record<Role, Array<{ label: string; share: number; minPrice?: number; maxPrice?: number; minStarter?: number; tierTarget: number }>> = {
-  P: [
-    { label: '1° Portiere Titolare Top', share: 0.85, minPrice: 15, tierTarget: 1 },
-    { label: '2° Portiere Riserva (Stessa Squadra)', share: 0.10, maxPrice: 6, tierTarget: 4 },
-    { label: '3° Portiere (Stessa Squadra)', share: 0.05, maxPrice: 2, tierTarget: 5 }
-  ],
-  D: [
-    { label: '1° Top Difesa / Modificatore', share: 0.36, minPrice: 16, minStarter: 85, tierTarget: 1 },
-    { label: '2° Semitop Spinta', share: 0.24, minPrice: 10, minStarter: 85, tierTarget: 2 },
-    { label: '3° Titolare da Bonus', share: 0.16, minPrice: 6, minStarter: 85, tierTarget: 3 },
-    { label: '4° Titolare Sicuro', share: 0.10, minPrice: 4, minStarter: 85, tierTarget: 3 },
-    { label: '5° Titolare Regolare', share: 0.06, minPrice: 3, minStarter: 80, tierTarget: 4 },
-    { label: '6° Titolare Certezza Voto', share: 0.04, minStarter: 80, tierTarget: 4 },
-    { label: '7° Titolare Low Cost', share: 0.02, minStarter: 80, tierTarget: 5 },
-    { label: '8° Certezza Voto (1 cr)', share: 0.02, minStarter: 80, tierTarget: 5 }
-  ],
-  C: [
-    { label: '1° Top Rigorista/Bonus', share: 0.38, minPrice: 28, minStarter: 85, tierTarget: 1 },
-    { label: '2° Semitop Incursore', share: 0.24, minPrice: 16, minStarter: 85, tierTarget: 2 },
-    { label: '3° Titolare Bonus', share: 0.16, minPrice: 8, minStarter: 85, tierTarget: 3 },
-    { label: '4° Titolare Sicuro', share: 0.10, minPrice: 5, minStarter: 85, tierTarget: 3 },
-    { label: '5° Regolare', share: 0.05, minPrice: 3, minStarter: 80, tierTarget: 4 },
-    { label: '6° Titolare Certezza Voto', share: 0.03, minStarter: 80, tierTarget: 4 },
-    { label: '7° Titolare Low Cost', share: 0.02, minStarter: 80, tierTarget: 5 },
-    { label: '8° Certezza Voto (1 cr)', share: 0.02, minStarter: 80, tierTarget: 5 }
-  ],
-  A: [
-    { label: '1° Top Bomber Assoluto', share: 0.58, minPrice: 80, minStarter: 85, tierTarget: 1 },
-    { label: '2° Secondo Titolare', share: 0.22, minPrice: 20, minStarter: 85, tierTarget: 2 },
-    { label: '3° Terzo Attaccante', share: 0.12, minPrice: 10, minStarter: 85, tierTarget: 3 },
-    { label: '4° Titolare Provincia', share: 0.05, minPrice: 4, minStarter: 80, tierTarget: 3 },
-    { label: '5° Titolare Low Cost', share: 0.02, minStarter: 80, tierTarget: 4 },
-    { label: '6° Certezza Voto (1 cr)', share: 0.01, minStarter: 80, tierTarget: 5 }
-  ]
-};
 
 /**
  * Score complessivo di un calciatore con massima priorità alla CERTEZZA DEL VOTO (Titolarità)
@@ -168,7 +128,189 @@ function computePlayerScore(player: Player, settings: LeagueSettings): number {
 }
 
 /**
- * Motore principale di generazione ed ottimizzazione rosa
+ * Penalità (punti score per credito) applicata quando la spesa di un reparto
+ * devia dal budget target della strategia: mantiene il senso delle strategie
+ * senza impedire all'ottimizzatore di spostare crediti dove rendono di più.
+ */
+const STRATEGY_ADHERENCE = 0.25;
+
+/**
+ * Peso dello score dei giocatori destinati alla panchina: in campo va solo l'11
+ * titolare, quindi la profondità vale meno della qualità dei titolari.
+ */
+const BENCH_WEIGHT = 0.4;
+
+/** Massimo numero di giocatori di movimento della stessa squadra (diversificazione rischio) */
+const MAX_PER_TEAM = 3;
+
+const FORMATIONS: Record<string, { D: number; C: number; A: number }> = {
+  '3-4-3': { D: 3, C: 4, A: 3 },
+  '4-3-3': { D: 4, C: 3, A: 3 },
+  '3-5-2': { D: 3, C: 5, A: 2 },
+  '4-4-2': { D: 4, C: 4, A: 2 },
+  '4-2-3-1': { D: 4, C: 5, A: 1 },
+};
+
+interface Candidate {
+  player: Player;
+  price: number;     // prezzo in unità DP (>= 1)
+  realPrice: number; // prezzo in crediti reali
+  score: number;
+}
+
+interface RoleSolution {
+  /** bestAt[w] = score massimo scegliendo esattamente starters+bench giocatori con spesa ESATTA w (in unità) */
+  bestAt: Float64Array;
+  /** Ricostruisce la selezione ottima per una spesa esatta w */
+  pick: (cost: number) => Candidate[];
+}
+
+/**
+ * Zaino 0/1 con doppia cardinalità esatta: ogni giocatore può essere preso come
+ * titolare (score pieno) o come riserva (score * BENCH_WEIGHT). Trova la
+ * combinazione ottima per ogni possibile spesa. Ottimo garantito rispetto allo score.
+ */
+function solveRoleKnapsack(cands: Candidate[], starters: number, bench: number, maxCost: number): RoleSolution {
+  const cols = maxCost + 1;
+  const bRows = bench + 1;
+  const rows = (starters + 1) * bRows;
+  const dp = new Float64Array(rows * cols).fill(Number.NEGATIVE_INFINITY);
+  dp[0] = 0;
+  // take[i][s][b][w]: 1 = preso da titolare, 2 = preso da riserva (per la ricostruzione)
+  const take = new Uint8Array(cands.length * rows * cols);
+
+  for (let i = 0; i < cands.length; i++) {
+    const c = cands[i].price;
+    const vStarter = cands[i].score;
+    const vBench = cands[i].score * BENCH_WEIGHT;
+    const base = i * rows * cols;
+    for (let s = starters; s >= 0; s--) {
+      for (let b = bench; b >= 0; b--) {
+        if (s === 0 && b === 0) continue;
+        const cur = (s * bRows + b) * cols;
+        const fromStarter = s > 0 ? ((s - 1) * bRows + b) * cols : -1;
+        const fromBench = b > 0 ? (s * bRows + (b - 1)) * cols : -1;
+        for (let w = maxCost; w >= c; w--) {
+          const idx = cur + w;
+          if (fromStarter >= 0) {
+            const from = dp[fromStarter + w - c];
+            if (from !== Number.NEGATIVE_INFINITY && from + vStarter > dp[idx]) {
+              dp[idx] = from + vStarter;
+              take[base + idx] = 1;
+            }
+          }
+          if (fromBench >= 0) {
+            const from = dp[fromBench + w - c];
+            if (from !== Number.NEGATIVE_INFINITY && from + vBench > dp[idx]) {
+              dp[idx] = from + vBench;
+              take[base + idx] = 2;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const full = (starters * bRows + bench) * cols;
+  const bestAt = dp.slice(full, full + cols);
+
+  const pick = (cost: number): Candidate[] => {
+    const chosen: Candidate[] = [];
+    let s = starters;
+    let b = bench;
+    let w = cost;
+    for (let i = cands.length - 1; i >= 0 && (s > 0 || b > 0); i--) {
+      const t = take[i * rows * cols + (s * bRows + b) * cols + w];
+      if (t === 1) {
+        chosen.push(cands[i]);
+        w -= cands[i].price;
+        s--;
+      } else if (t === 2) {
+        chosen.push(cands[i]);
+        w -= cands[i].price;
+        b--;
+      }
+    }
+    return chosen;
+  };
+
+  return { bestAt, pick };
+}
+
+/**
+ * Ripartisce il budget totale tra i reparti: per ogni possibile spesa complessiva
+ * sceglie la combinazione di spese per reparto che massimizza lo score totale,
+ * penalizzando le deviazioni dai target della strategia.
+ */
+function combineRoles(
+  roleData: Array<{ bestAt: Float64Array; target: number }>,
+  totalCost: number,
+  lambda: number
+): number[] | null {
+  let acc = new Float64Array(totalCost + 1).fill(Number.NEGATIVE_INFINITY);
+  acc[0] = 0;
+  const parents: Int32Array[] = [];
+
+  for (const { bestAt, target } of roleData) {
+    const next = new Float64Array(totalCost + 1).fill(Number.NEGATIVE_INFINITY);
+    const parent = new Int32Array(totalCost + 1).fill(-1);
+    for (let b = 0; b <= totalCost; b++) {
+      const sMax = Math.min(b, bestAt.length - 1);
+      for (let s = 0; s <= sMax; s++) {
+        const own = bestAt[s];
+        const before = acc[b - s];
+        if (own === Number.NEGATIVE_INFINITY || before === Number.NEGATIVE_INFINITY) continue;
+        const val = before + own - lambda * Math.abs(s - target);
+        if (val > next[b]) {
+          next[b] = val;
+          parent[b] = s;
+        }
+      }
+    }
+    parents.push(parent);
+    acc = next;
+  }
+
+  let bestB = -1;
+  let bestVal = Number.NEGATIVE_INFINITY;
+  for (let b = 0; b <= totalCost; b++) {
+    if (acc[b] > bestVal) {
+      bestVal = acc[b];
+      bestB = b;
+    }
+  }
+  if (bestB < 0) return null;
+
+  const costs: number[] = new Array(roleData.length).fill(0);
+  let b = bestB;
+  for (let r = roleData.length - 1; r >= 0; r--) {
+    const s = parents[r][b];
+    if (s < 0) return null;
+    costs[r] = s;
+    b -= s;
+  }
+  return costs;
+}
+
+/**
+ * Limita i candidati per la DP: i migliori per score più i più economici
+ * (i riempitivi da 1 credito servono a garantire la fattibilità del vincolo di rosa)
+ */
+function pruneCandidates(cands: Candidate[], maxMain = 150, maxCheap = 40): Candidate[] {
+  if (cands.length <= maxMain) return cands;
+  const byScore = [...cands].sort((a, b) => b.score - a.score);
+  const kept = new Set(byScore.slice(0, maxMain).map(c => c.player.id));
+  byScore
+    .filter(c => c.price <= 3)
+    .slice(0, maxCheap)
+    .forEach(c => kept.add(c.player.id));
+  return cands.filter(c => kept.has(c.player.id));
+}
+
+/**
+ * Motore principale di generazione ed ottimizzazione rosa.
+ * Portieri: blocco della stessa squadra (euristica di dominio).
+ * D/C/A: zaino esatto per reparto + ripartizione ottima del budget tra reparti.
  */
 export function optimizeSquad(
   allPlayers: Player[],
@@ -179,6 +321,26 @@ export function optimizeSquad(
   const weights = getStrategyWeights(settings);
   const totalBudget = settings.totalBudget;
   const participants = settings.participants;
+
+  // Prezzi e score memoizzati: vengono riletti decine di volte per giocatore
+  const priceCache = new Map<string, number>();
+  const priceFor = (p: Player): number => {
+    let v = priceCache.get(p.id);
+    if (v === undefined) {
+      v = calculateDynamicPrice(p, totalBudget, participants);
+      priceCache.set(p.id, v);
+    }
+    return v;
+  };
+  const scoreCache = new Map<string, number>();
+  const scoreFor = (p: Player): number => {
+    let v = scoreCache.get(p.id);
+    if (v === undefined) {
+      v = computePlayerScore(p, settings);
+      scoreCache.set(p.id, v);
+    }
+    return v;
+  };
 
   const availablePlayers = allPlayers.filter(p => !blacklistedIds.includes(p.id));
   const usedIds = new Set<string>();
@@ -203,19 +365,25 @@ export function optimizeSquad(
 
   let primaryGoalkeeperTeam: string | null = pinnedKeepers.length > 0 ? pinnedKeepers[0].team : null;
 
+  const keepersCount = settings.slots.P;
+
   if (!primaryGoalkeeperTeam) {
+    // Riserva 1 credito per ogni portiere di riserva ancora da comprare
+    const starterCap = Math.max(1, roleTargetBudgets.P - (keepersCount - 1));
     const keeperCandidates = availablePlayers
       .filter(p => p.role === 'P' && !usedIds.has(p.id))
       .map(p => {
-        const price = calculateDynamicPrice(p, totalBudget, participants);
-        const score = computePlayerScore(p, settings);
+        const price = priceFor(p);
+        const score = scoreFor(p);
         const fit = score * 3 - Math.abs(price - (roleTargetBudgets.P * 0.85)) * 0.7;
-        return { player: p, price, score, fit };
+        return { player: p, price, fit };
       })
-      .filter(c => c.price <= roleTargetBudgets.P - 2)
+      .filter(c => c.price <= starterCap)
       .sort((a, b) => b.fit - a.fit);
 
-    const bestStarter = keeperCandidates[0]?.player || availablePlayers.filter(p => p.role === 'P').sort((a, b) => b.expectedPoints - a.expectedPoints)[0];
+    const bestStarter = keeperCandidates[0]?.player || availablePlayers
+      .filter(p => p.role === 'P' && !usedIds.has(p.id))
+      .sort((a, b) => priceFor(a) - priceFor(b))[0];
     if (bestStarter) {
       selectedPlayers.push(bestStarter);
       usedIds.add(bestStarter.id);
@@ -224,169 +392,207 @@ export function optimizeSquad(
   }
 
   // Riempi le riserve portiere della STESSA SQUADRA
-  const keepersCount = settings.slots.P;
   while (selectedPlayers.filter(p => p.role === 'P').length < keepersCount) {
     const sameTeamBackup = availablePlayers
       .filter(p => p.role === 'P' && p.team === primaryGoalkeeperTeam && !usedIds.has(p.id))
-      .sort((a, b) => calculateDynamicPrice(a, totalBudget, participants) - calculateDynamicPrice(b, totalBudget, participants))[0];
+      .sort((a, b) => priceFor(a) - priceFor(b))[0];
 
-    if (sameTeamBackup) {
-      selectedPlayers.push(sameTeamBackup);
-      usedIds.add(sameTeamBackup.id);
-    } else {
-      const anyCheapBackup = availablePlayers
-        .filter(p => p.role === 'P' && !usedIds.has(p.id))
-        .sort((a, b) => calculateDynamicPrice(a, totalBudget, participants) - calculateDynamicPrice(b, totalBudget, participants))[0];
-      if (anyCheapBackup) {
-        selectedPlayers.push(anyCheapBackup);
-        usedIds.add(anyCheapBackup.id);
-      } else {
-        break;
-      }
-    }
+    const backup = sameTeamBackup || availablePlayers
+      .filter(p => p.role === 'P' && !usedIds.has(p.id))
+      .sort((a, b) => priceFor(a) - priceFor(b))[0];
+
+    if (!backup) break;
+    selectedPlayers.push(backup);
+    usedIds.add(backup.id);
   }
 
   // ==========================================
-  // 2. SELEZIONE DIFESA, CENTROCAMPO, ATTACCO CON TITOLARITÀ PRIORITARIA
+  // 2. DIFESA, CENTROCAMPO, ATTACCO: OTTIMO ESATTO VIA PROGRAMMAZIONE DINAMICA
   // ==========================================
-  const otherRoles: Role[] = ['D', 'C', 'A'];
+  // Con budget molto alti la DP lavora in unità di credito aggregate per restare O(1200) celle
+  const unit = Math.max(1, Math.ceil(totalBudget / 1200));
+  const toUnits = (credits: number) => Math.max(1, Math.ceil(credits / unit));
 
-  otherRoles.forEach(role => {
-    const requiredCount = settings.slots[role];
-    const pinnedInRole = pinnedPlayers.filter(p => p.role === role);
-    const slots = SLOT_CONFIGS[role];
+  // Modulo di riferimento per decidere quanti slot sono "da titolare" in ogni reparto
+  const shapeName = settings.targetFormation !== 'auto'
+    ? settings.targetFormation
+    : ((STRATEGIES[settings.strategy] || STRATEGIES.balanced).recommendedFormation);
+  const shape = FORMATIONS[shapeName] || FORMATIONS['3-4-3'];
 
-    const spentOnPinned = pinnedInRole.reduce(
-      (sum, p) => sum + calculateDynamicPrice(p, totalBudget, participants),
-      0
-    );
+  const outfieldRoles: Role[] = ['D', 'C', 'A'];
+  const starterNeedByRole = {} as Record<Role, number>;
+  const benchNeedByRole = {} as Record<Role, number>;
+  const targetUnitsByRole = {} as Record<Role, number>;
 
-    let budgetLeftInRole = Math.max(requiredCount - pinnedInRole.length, roleTargetBudgets[role] - spentOnPinned);
+  for (const role of outfieldRoles) {
+    // I pinned occupano prima gli slot da titolare (in ordine di score)
+    const pinnedInRole = pinnedPlayers
+      .filter(p => p.role === role)
+      .sort((a, b) => scoreFor(b) - scoreFor(a));
     pinnedInRole.forEach(p => selectedPlayers.push(p));
 
-    let neededCount = requiredCount - pinnedInRole.length;
-    const availableSlots = slots.slice(pinnedInRole.length);
+    const starterSlots = Math.min(shape[role as 'D' | 'C' | 'A'], settings.slots[role]);
+    const benchSlots = settings.slots[role] - starterSlots;
+    const pinnedAsStarters = Math.min(starterSlots, pinnedInRole.length);
+    const pinnedAsBench = Math.min(benchSlots, pinnedInRole.length - pinnedAsStarters);
 
-    availableSlots.forEach((slot, idx) => {
-      if (neededCount <= 0) return;
+    starterNeedByRole[role] = starterSlots - pinnedAsStarters;
+    benchNeedByRole[role] = benchSlots - pinnedAsBench;
 
-      const remainingSlots = neededCount;
-      const targetForSlot = Math.max(1, Math.round(budgetLeftInRole * slot.share));
-      const maxAffordable = Math.max(1, budgetLeftInRole - (remainingSlots - 1));
+    const pinnedSpend = pinnedInRole.reduce((sum, p) => sum + priceFor(p), 0);
+    targetUnitsByRole[role] = Math.max(0, Math.round((totalBudget * weights[role] - pinnedSpend) / unit));
+  }
 
-      const scale = totalBudget / 500;
-      const scaledMinPrice = slot.minPrice ? Math.max(1, Math.round(slot.minPrice * scale)) : undefined;
-      const scaledMaxPrice = slot.maxPrice ? Math.max(1, Math.round(slot.maxPrice * scale)) : undefined;
+  const unitsAlreadySpent = selectedPlayers.reduce((sum, p) => sum + toUnits(priceFor(p)), 0);
+  const budgetUnits = Math.max(0, Math.floor(totalBudget / unit) - unitsAlreadySpent);
 
-      const candidates = availablePlayers
+  const solutions = {} as Record<Role, RoleSolution>;
+  let allFeasible = true;
+
+  for (const role of outfieldRoles) {
+    const cands = pruneCandidates(
+      availablePlayers
         .filter(p => p.role === role && !usedIds.has(p.id))
-        .map(p => {
-          const price = calculateDynamicPrice(p, totalBudget, participants);
-          const score = computePlayerScore(p, settings);
+        .map(p => ({ player: p, price: toUnits(priceFor(p)), realPrice: priceFor(p), score: scoreFor(p) }))
+        .filter(c => c.price <= budgetUnits)
+    );
+    const solution = solveRoleKnapsack(cands, starterNeedByRole[role], benchNeedByRole[role], budgetUnits);
+    solutions[role] = solution;
+    if (!solution.bestAt.some(v => v !== Number.NEGATIVE_INFINITY)) {
+      allFeasible = false;
+    }
+  }
 
-          let fit = score * 3;
-          if (scaledMinPrice && price < scaledMinPrice) fit -= (scaledMinPrice - price) * 8;
-          if (scaledMaxPrice && price > scaledMaxPrice) fit -= (price - scaledMaxPrice) * 12;
-          
-          // Penalità pesante se il giocatore non raggiunge la titolarità minima richiesta per lo slot
-          if (slot.minStarter && p.starterProbability < slot.minStarter) {
-            fit -= (slot.minStarter - p.starterProbability) * 3;
-          }
+  if (allFeasible) {
+    const costs = combineRoles(
+      outfieldRoles.map(role => ({ bestAt: solutions[role].bestAt, target: targetUnitsByRole[role] })),
+      budgetUnits,
+      STRATEGY_ADHERENCE * unit
+    );
+    if (costs) {
+      outfieldRoles.forEach((role, idx) => {
+        for (const cand of solutions[role].pick(costs[idx])) {
+          selectedPlayers.push(cand.player);
+          usedIds.add(cand.player.id);
+        }
+      });
+    }
+  }
 
-          fit -= Math.abs(price - targetForSlot) * 0.7;
-
-          return { player: p, price, score, fit, starterProb: p.starterProbability };
-        })
-        .filter(c => c.price <= maxAffordable)
-        .sort((a, b) => b.fit - a.fit);
-
-      const chosen = candidates[0] || availablePlayers
-        .filter(p => p.role === role && !usedIds.has(p.id))
-        .map(p => ({ player: p, price: calculateDynamicPrice(p, totalBudget, participants), starterProb: p.starterProbability }))
-        .filter(c => c.price <= maxAffordable)
-        .sort((a, b) => b.starterProb - a.starterProb)[0];
-
-      if (chosen) {
-        const p = chosen.player;
-        const price = chosen.price;
-        selectedPlayers.push(p);
-        usedIds.add(p.id);
-        budgetLeftInRole -= price;
-        neededCount--;
-      }
-    });
-
-    // Fallback di emergenza garantendo il giocatore con più titolarità
-    while (neededCount > 0) {
-      const fallback = availablePlayers
-        .filter(p => p.role === role && !usedIds.has(p.id))
-        .sort((a, b) => b.starterProbability - a.starterProbability)[0];
-
-      if (fallback) {
+  // Riempimento d'emergenza (pool giocatori insufficiente o DP non fattibile):
+  // massimizza la titolarità restando nel budget quando possibile
+  const emergencyFill = () => {
+    let remaining = totalBudget - selectedPlayers.reduce((sum, p) => sum + priceFor(p), 0);
+    for (const role of outfieldRoles) {
+      let missing = settings.slots[role] - selectedPlayers.filter(p => p.role === role).length;
+      while (missing > 0) {
+        const pool = availablePlayers.filter(p => p.role === role && !usedIds.has(p.id));
+        const affordable = pool
+          .filter(p => priceFor(p) <= Math.max(1, remaining - (missing - 1)))
+          .sort((a, b) => b.starterProbability - a.starterProbability)[0];
+        const fallback = affordable || pool.sort((a, b) => priceFor(a) - priceFor(b))[0];
+        if (!fallback) break;
         selectedPlayers.push(fallback);
         usedIds.add(fallback.id);
+        remaining -= priceFor(fallback);
+        missing--;
       }
-      neededCount--;
     }
-  });
+  };
+  // Con la DP andata a buon fine i conteggi sono già completi: il fill copre solo i casi limite
+  emergencyFill();
 
   // ==========================================
-  // 3. FASE DI UPGRADING SUL BUDGET RIMANENTE (PREFERENDO TITOLARI)
+  // 3. DIVERSIFICAZIONE: MAX GIOCATORI DI MOVIMENTO PER SQUADRA
   // ==========================================
-  let currentSpent = selectedPlayers.reduce(
-    (sum, p) => sum + calculateDynamicPrice(p, totalBudget, participants),
-    0
-  );
-  let remainingBudget = totalBudget - currentSpent;
+  let remainingBudget = totalBudget - selectedPlayers.reduce((sum, p) => sum + priceFor(p), 0);
+  for (let guard = 0; guard < 10; guard++) {
+    const teamCounts = new Map<string, number>();
+    selectedPlayers
+      .filter(p => p.role !== 'P')
+      .forEach(p => teamCounts.set(p.team, (teamCounts.get(p.team) || 0) + 1));
 
-  for (let step = 0; step < 12 && remainingBudget >= 4; step++) {
-    let upgraded = false;
-    for (const upgradeRole of ['A', 'C', 'D'] as Role[]) {
-      const roleItems = selectedPlayers
-        .map((p, idx) => ({ p, idx, price: calculateDynamicPrice(p, totalBudget, participants) }))
-        .filter(item => item.p.role === upgradeRole && !pinnedIds.includes(item.p.id) && item.price < (totalBudget * 0.15))
-        .sort((a, b) => a.price - b.price);
+    const overTeam = [...teamCounts.entries()].find(([, n]) => n > MAX_PER_TEAM)?.[0];
+    if (!overTeam) break;
 
-      for (const item of roleItems) {
-        const maxAffordable = item.price + remainingBudget;
-        const upgradeCandidates = availablePlayers
-          .filter(p => 
-            p.role === upgradeRole && 
-            !usedIds.has(p.id) && 
-            calculateDynamicPrice(p, totalBudget, participants) > item.price && 
-            calculateDynamicPrice(p, totalBudget, participants) <= maxAffordable && 
-            p.starterProbability >= 80 &&
-            p.expectedPoints > item.p.expectedPoints
-          )
-          .sort((a, b) => b.expectedPoints - a.expectedPoints);
+    const weakest = selectedPlayers
+      .filter(p => p.role !== 'P' && p.team === overTeam && !pinnedIds.includes(p.id))
+      .sort((a, b) => scoreFor(a) - scoreFor(b))[0];
+    if (!weakest) break;
 
-        if (upgradeCandidates[0]) {
-          const better = upgradeCandidates[0];
-          const newPrice = calculateDynamicPrice(better, totalBudget, participants);
-          usedIds.delete(item.p.id);
-          usedIds.add(better.id);
-          selectedPlayers[item.idx] = better;
-          remainingBudget -= (newPrice - item.price);
-          upgraded = true;
-          break;
-        }
-      }
-      if (upgraded) break;
+    const replacement = availablePlayers
+      .filter(p =>
+        p.role === weakest.role &&
+        !usedIds.has(p.id) &&
+        p.team !== overTeam &&
+        (teamCounts.get(p.team) || 0) < MAX_PER_TEAM &&
+        priceFor(p) <= priceFor(weakest) + remainingBudget &&
+        scoreFor(p) >= scoreFor(weakest) - 25 // non sacrificare troppa qualità per diversificare
+      )
+      .sort((a, b) => scoreFor(b) - scoreFor(a))[0];
+    if (!replacement) break;
+
+    usedIds.delete(weakest.id);
+    usedIds.add(replacement.id);
+    selectedPlayers[selectedPlayers.indexOf(weakest)] = replacement;
+    remainingBudget -= priceFor(replacement) - priceFor(weakest);
+  }
+
+  // ==========================================
+  // 3b. UPGRADE FINALE SUL BUDGET RESIDUO
+  // ==========================================
+  // Reinveste i crediti avanzati (arrotondamenti DP e swap di diversificazione):
+  // ogni scambio migliora lo score, resta nel budget e rispetta il tetto per squadra
+  for (let guard = 0; guard < 20; guard++) {
+    remainingBudget = totalBudget - selectedPlayers.reduce((sum, p) => sum + priceFor(p), 0);
+    if (remainingBudget <= 0) break;
+
+    const teamCounts = new Map<string, number>();
+    selectedPlayers
+      .filter(p => p.role !== 'P')
+      .forEach(p => teamCounts.set(p.team, (teamCounts.get(p.team) || 0) + 1));
+
+    const roleSpend = {} as Record<Role, number>;
+    for (const role of outfieldRoles) {
+      roleSpend[role] = selectedPlayers
+        .filter(p => p.role === role)
+        .reduce((sum, p) => sum + priceFor(p), 0);
     }
-    if (!upgraded) break;
+
+    let best: { out: Player; in: Player; gain: number } | null = null;
+    for (const owned of selectedPlayers) {
+      if (owned.role === 'P' || pinnedIds.includes(owned.id)) continue;
+      const budgetCap = priceFor(owned) + remainingBudget;
+      const target = roleTargetBudgets[owned.role];
+      const spend = roleSpend[owned.role];
+      for (const cand of availablePlayers) {
+        if (cand.role !== owned.role || usedIds.has(cand.id)) continue;
+        if (priceFor(cand) > budgetCap) continue;
+        // Stesso obiettivo della DP: score meno la penalità di deviazione dal target di reparto
+        const newSpend = spend + priceFor(cand) - priceFor(owned);
+        const deviationChange = Math.abs(newSpend - target) - Math.abs(spend - target);
+        const gain = scoreFor(cand) - scoreFor(owned) - STRATEGY_ADHERENCE * deviationChange;
+        if (gain <= 0 || (best && gain <= best.gain)) continue;
+        const sameTeam = cand.team === owned.team;
+        if (!sameTeam && (teamCounts.get(cand.team) || 0) >= MAX_PER_TEAM) continue;
+        best = { out: owned, in: cand, gain };
+      }
+    }
+    if (!best) break;
+
+    usedIds.delete(best.out.id);
+    usedIds.add(best.in.id);
+    selectedPlayers[selectedPlayers.indexOf(best.out)] = best.in;
   }
 
   // 4. Calcolo metriche di riepilogo
-  const totalSpent = selectedPlayers.reduce(
-    (sum, p) => sum + calculateDynamicPrice(p, totalBudget, participants),
-    0
-  );
+  const totalSpent = selectedPlayers.reduce((sum, p) => sum + priceFor(p), 0);
 
   const budgetBreakdown: Record<Role, number> = {
-    P: selectedPlayers.filter(p => p.role === 'P').reduce((sum, p) => sum + calculateDynamicPrice(p, totalBudget, participants), 0),
-    D: selectedPlayers.filter(p => p.role === 'D').reduce((sum, p) => sum + calculateDynamicPrice(p, totalBudget, participants), 0),
-    C: selectedPlayers.filter(p => p.role === 'C').reduce((sum, p) => sum + calculateDynamicPrice(p, totalBudget, participants), 0),
-    A: selectedPlayers.filter(p => p.role === 'A').reduce((sum, p) => sum + calculateDynamicPrice(p, totalBudget, participants), 0),
+    P: selectedPlayers.filter(p => p.role === 'P').reduce((sum, p) => sum + priceFor(p), 0),
+    D: selectedPlayers.filter(p => p.role === 'D').reduce((sum, p) => sum + priceFor(p), 0),
+    C: selectedPlayers.filter(p => p.role === 'C').reduce((sum, p) => sum + priceFor(p), 0),
+    A: selectedPlayers.filter(p => p.role === 'A').reduce((sum, p) => sum + priceFor(p), 0),
   };
 
   const budgetPercentages = {
@@ -406,7 +612,7 @@ export function optimizeSquad(
   const projectedAssists = selectedPlayers.reduce((sum, p) => sum + p.expectedAssists, 0);
   const penaltyTakersCount = selectedPlayers.filter(p => p.isPenaltyTaker).length;
   const averageStarterProbability = Math.round(
-    selectedPlayers.reduce((sum, p) => sum + p.starterProbability, 0) / selectedPlayers.length
+    selectedPlayers.reduce((sum, p) => sum + p.starterProbability, 0) / Math.max(1, selectedPlayers.length)
   );
 
   const strategyObj = STRATEGIES[settings.strategy] || STRATEGIES.balanced;
@@ -436,52 +642,58 @@ export function optimizeSquad(
 }
 
 /**
- * Seleziona l'11 titolare migliore e la panchina in base al modulo
+ * Seleziona l'11 titolare migliore e la panchina: con modulo 'auto' valuta
+ * tutti i moduli ammessi sulla rosa reale e sceglie quello con più punti attesi
  */
 function selectStartingXI(
   players: Player[],
   settings: LeagueSettings
 ): { formation: string; startingXI: Player[]; bench: Player[] } {
-  const sortedP = players.filter(p => p.role === 'P').sort((a, b) => b.expectedPoints - a.expectedPoints);
-  const sortedD = players.filter(p => p.role === 'D').sort((a, b) => b.expectedPoints - a.expectedPoints);
-  const sortedC = players.filter(p => p.role === 'C').sort((a, b) => b.expectedPoints - a.expectedPoints);
-  const sortedA = players.filter(p => p.role === 'A').sort((a, b) => b.expectedPoints - a.expectedPoints);
+  const sorted: Record<Role, Player[]> = {
+    P: players.filter(p => p.role === 'P').sort((a, b) => b.expectedPoints - a.expectedPoints),
+    D: players.filter(p => p.role === 'D').sort((a, b) => b.expectedPoints - a.expectedPoints),
+    C: players.filter(p => p.role === 'C').sort((a, b) => b.expectedPoints - a.expectedPoints),
+    A: players.filter(p => p.role === 'A').sort((a, b) => b.expectedPoints - a.expectedPoints),
+  };
 
-  let formation = settings.targetFormation;
-  if (formation === 'auto') {
-    if (settings.strategy === 'defense_modifier') {
-      formation = '4-3-3';
-    } else if (settings.strategy === 'midfield_power') {
-      formation = '3-5-2';
-    } else {
-      formation = '3-4-3';
+  const candidates = settings.targetFormation === 'auto'
+    ? Object.keys(FORMATIONS)
+    : [settings.targetFormation];
+
+  let best: { formation: string; startingXI: Player[]; points: number } | null = null;
+
+  for (const name of candidates) {
+    const shape = FORMATIONS[name];
+    if (!shape) continue;
+    if (sorted.D.length < shape.D || sorted.C.length < shape.C || sorted.A.length < shape.A) continue;
+
+    const xi = [
+      ...sorted.P.slice(0, 1),
+      ...sorted.D.slice(0, shape.D),
+      ...sorted.C.slice(0, shape.C),
+      ...sorted.A.slice(0, shape.A),
+    ];
+    const points = xi.reduce((sum, p) => sum + p.expectedPoints, 0);
+    if (!best || points > best.points) {
+      best = { formation: name, startingXI: xi, points };
     }
   }
 
-  let defCount = 3;
-  let midCount = 4;
-  let attCount = 3;
-
-  if (formation === '4-3-3') {
-    defCount = 4; midCount = 3; attCount = 3;
-  } else if (formation === '3-5-2') {
-    defCount = 3; midCount = 5; attCount = 2;
-  } else if (formation === '4-4-2') {
-    defCount = 4; midCount = 4; attCount = 2;
-  } else if (formation === '4-2-3-1') {
-    defCount = 4; midCount = 5; attCount = 1;
+  if (!best) {
+    // Rosa incompleta: schiera comunque il meglio disponibile in 3-4-3
+    const xi = [
+      ...sorted.P.slice(0, 1),
+      ...sorted.D.slice(0, 3),
+      ...sorted.C.slice(0, 4),
+      ...sorted.A.slice(0, 3),
+    ];
+    best = { formation: '3-4-3', startingXI: xi, points: 0 };
   }
 
-  const startingP = sortedP.slice(0, 1);
-  const startingD = sortedD.slice(0, defCount);
-  const startingC = sortedC.slice(0, midCount);
-  const startingA = sortedA.slice(0, attCount);
-
-  const startingXI = [...startingP, ...startingD, ...startingC, ...startingA];
-  const startingIds = new Set(startingXI.map(p => p.id));
+  const startingIds = new Set(best.startingXI.map(p => p.id));
   const bench = players.filter(p => !startingIds.has(p.id));
 
-  return { formation, startingXI, bench };
+  return { formation: best.formation, startingXI: best.startingXI, bench };
 }
 
 /**
@@ -499,7 +711,7 @@ export function findAlternatives(
   const maxPrice = targetPrice * 1.35;
 
   return allPlayers
-    .filter(p => 
+    .filter(p =>
       p.role === targetPlayer.role &&
       p.id !== targetPlayer.id &&
       !currentSquadIds.includes(p.id)
@@ -507,8 +719,10 @@ export function findAlternatives(
     .map(p => {
       const price = calculateDynamicPrice(p, totalBudget, participants);
       const priceDiff = Math.abs(price - targetPrice);
-      const pointsDiff = Math.abs(p.expectedPoints - targetPlayer.expectedPoints);
-      const score = 100 - (priceDiff * 2) - (pointsDiff * 15);
+      // Penalizza solo i giocatori più deboli del target; un piccolo bonus premia gli upgrade
+      const downgrade = Math.max(0, targetPlayer.expectedPoints - p.expectedPoints);
+      const upgrade = Math.max(0, p.expectedPoints - targetPlayer.expectedPoints);
+      const score = 100 - (priceDiff * 2) - (downgrade * 15) + Math.min(10, upgrade * 5);
       return { player: p, score, price };
     })
     .filter(item => item.price >= minPrice && item.price <= maxPrice)
