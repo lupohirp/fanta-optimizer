@@ -36,6 +36,7 @@ export interface Player {
   minAuctionPrice500?: number; // Range minimo asta reale
   maxAuctionPrice500?: number; // Range massimo asta reale
   budgetPercentage?: number;   // Percentuale media sul budget complessivo (%)
+  isCustomPrice?: boolean;     // Indica se l'utente ha impostato un prezzo custom
 }
 
 export type StrategyType = 

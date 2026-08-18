@@ -23,10 +23,11 @@ import {
   Layers,
   ArrowRight,
   ArrowUpDown,
-  Flame
+  Flame,
+  Edit3
 } from 'lucide-react';
 
-const STORAGE_CUSTOM_SQUAD_KEY = 'fanta_optimizer_custom_squad_state_v2';
+const STORAGE_CUSTOM_SQUAD_KEY = 'fanta_optimizer_custom_squad_state_v3';
 
 interface CustomSquadBuilderProps {
   allPlayers: Player[];
@@ -212,6 +213,26 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     setSearchQuery('');
   };
 
+  // Update specific player price in slot
+  const handleUpdateSlotPrice = (role: Role, index: number, newPrice: number) => {
+    setSelectedSlots(prev => {
+      const list = [...prev[role]];
+      const p = list[index];
+      if (p) {
+        const price500 = Math.max(1, Math.round(newPrice * (500 / totalBudget)));
+        list[index] = {
+          ...p,
+          estimatedPrice500: price500,
+          avgAuctionPrice500: price500,
+          isCustomPrice: true
+        };
+      }
+      const updated = { ...prev, [role]: list };
+      saveToLocalStorage(updated);
+      return updated;
+    });
+  };
+
   // Assign entire Goalkeeper Block for a team
   const handleAssignGoalkeeperBlock = (blockKeepers: Player[]) => {
     setSelectedSlots(prev => {
@@ -354,11 +375,9 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
       }))
       .sort((a, b) => {
         if (pickerSortBy === 'starter') {
-          // 1° Criterio: Titolarità decrescente (95%, 90%, 82%...)
           if (b.player.starterProbability !== a.player.starterProbability) {
             return b.player.starterProbability - a.player.starterProbability;
           }
-          // 2° Criterio: FantaMedia decrescente
           return b.player.expectedPoints - a.player.expectedPoints;
         } else if (pickerSortBy === 'points') {
           return b.player.expectedPoints - a.player.expectedPoints;
@@ -384,13 +403,13 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>🛠️ Costruttore Rosa Custom (Salvataggio Automatico)</span>
+              <span>🛠️ Costruttore Rosa Custom & Valori Personalizzati</span>
               <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.2)', color: 'var(--accent-emerald-light)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
                 💾 Auto-salvato
               </span>
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Componi manualmente la tua rosa o autocompleta gli slot vuoti • Ordinamento per titolarità & certezza voto
+              Componi la tua rosa, imposta i prezzi custom per ogni giocatore o autocompleta con l'AI
             </p>
           </div>
 
@@ -500,7 +519,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
           </div>
 
           {/* Slots grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '10px' }}>
             {selectedSlots[role].map((player, idx) => {
               if (player) {
                 const price = calculateDynamicPrice(player, totalBudget, participants);
@@ -509,7 +528,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                     key={`${role}-${idx}`}
                     style={{
                       background: 'var(--bg-input)',
-                      border: '1px solid var(--border-subtle)',
+                      border: player.isCustomPrice ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-subtle)',
                       borderRadius: 'var(--radius-md)',
                       padding: '10px 12px',
                       display: 'flex',
@@ -518,44 +537,58 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                       gap: '8px'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', width: '18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', width: '16px' }}>
                         #{idx + 1}
                       </span>
                       <div style={{ minWidth: 0 }}>
                         <div 
                           onClick={() => onSelectPlayerModal(player)}
                           style={{ fontWeight: 800, fontSize: '0.9rem', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                          title={player.name}
+                          title={`${player.name} - Clicca per scheda o prezzo custom`}
                         >
                           {player.name}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          {player.team} • <span style={{ color: player.starterProbability >= 85 ? 'var(--accent-emerald-light)' : 'var(--text-muted)', fontWeight: 700 }}>{player.starterProbability}% Titolare</span>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                          {player.team} • <span style={{ color: player.starterProbability >= 85 ? 'var(--accent-emerald-light)' : 'var(--text-muted)', fontWeight: 700 }}>{player.starterProbability}% Tit.</span>
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                      <span style={{ 
-                        background: 'rgba(245, 158, 11, 0.15)', 
-                        color: '#fbbf24', 
-                        fontWeight: 800, 
-                        fontFamily: 'var(--font-mono)',
-                        padding: '2px 8px',
-                        borderRadius: 'var(--radius-sm)',
-                        fontSize: '0.85rem'
-                      }}>
-                        {price} cr
-                      </span>
+                    {/* Interactive Price Input in Slot */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <div style={{ position: 'relative', width: '65px' }} title="Prezzo speso/budget per questo slot (modificabile)">
+                        <input
+                          type="number"
+                          min={1}
+                          max={totalBudget}
+                          value={price}
+                          onChange={(e) => handleUpdateSlotPrice(role, idx, parseInt(e.target.value) || 1)}
+                          style={{
+                            width: '100%',
+                            background: 'var(--bg-card)',
+                            border: player.isCustomPrice ? '1px solid var(--accent-gold)' : '1px solid var(--border-subtle)',
+                            borderRadius: 'var(--radius-sm)',
+                            padding: '3px 18px 3px 6px',
+                            color: 'var(--accent-gold)',
+                            fontWeight: 800,
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: '0.85rem',
+                            textAlign: 'right'
+                          }}
+                        />
+                        <span style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                          cr
+                        </span>
+                      </div>
 
                       <button
                         onClick={() => handleRemovePlayer(role, idx)}
                         className="btn-icon"
-                        style={{ width: '28px', height: '28px' }}
+                        style={{ width: '26px', height: '26px' }}
                         title="Rimuovi giocatore da questo slot"
                       >
-                        <X size={14} />
+                        <X size={13} />
                       </button>
                     </div>
                   </div>
@@ -683,7 +716,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                 />
               </div>
 
-              {/* Sorting Pills: Starter is Default */}
+              {/* Sorting Pills */}
               <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-card)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
                 <button
                   onClick={() => setPickerSortBy('starter')}
@@ -696,9 +729,8 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                     color: pickerSortBy === 'starter' ? '#fff' : 'var(--text-secondary)',
                     cursor: 'pointer'
                   }}
-                  title="Ordina per percentuale di titolarità e presenze"
                 >
-                  ⚡ Titolarità (Fissi)
+                  ⚡ Titolarità
                 </button>
 
                 <button
@@ -776,9 +808,14 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
                             ({player.team})
                           </span>
+                          {player.isCustomPrice && (
+                            <span style={{ fontSize: '0.65rem', background: 'rgba(245, 158, 11, 0.2)', color: 'var(--accent-gold)', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>
+                              ✏️ Custom
+                            </span>
+                          )}
                           {isHighStarter && (
                             <span style={{ fontSize: '0.68rem', background: 'rgba(16, 185, 129, 0.2)', color: 'var(--accent-emerald-light)', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                              ⚡ Titolare Fisso
+                              ⚡ Titolare
                             </span>
                           )}
                         </div>
@@ -787,9 +824,6 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                           Titolarità: <strong style={{ color: isHighStarter ? 'var(--accent-emerald-light)' : player.starterProbability >= 70 ? '#fbbf24' : '#ef4444' }}>{player.starterProbability}%</strong>
                           {' • '}FM: <strong style={{ color: '#fff' }}>{player.expectedPoints.toFixed(1)}</strong>
                           {player.isPenaltyTaker && ' • 🎯 Rigori'}
-                          {player.historicalStats && player.historicalStats[0] && (
-                            <span style={{ color: 'var(--text-secondary)' }}> ({player.historicalStats[0].played} presenze t-1)</span>
-                          )}
                         </div>
                       </div>
 

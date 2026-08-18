@@ -461,6 +461,7 @@ export default function Home() {
             setPlayerToEdit(p);
             setIsEditModalOpen(true);
           }}
+          onSavePlayer={handleSavePlayer}
         />
       )}
 
