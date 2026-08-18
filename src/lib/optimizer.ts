@@ -75,8 +75,8 @@ export function getStrategyWeights(settings: LeagueSettings): { P: number; D: nu
 const SLOT_CONFIGS: Record<Role, Array<{ label: string; share: number; minPrice?: number; maxPrice?: number; tierTarget: number }>> = {
   P: [
     { label: '1° Portiere Titolare Top', share: 0.85, minPrice: 15, tierTarget: 1 },
-    { label: '2° Portiere Riserva', share: 0.10, maxPrice: 4, tierTarget: 4 },
-    { label: '3° Portiere (1 cr)', share: 0.05, maxPrice: 1, tierTarget: 5 }
+    { label: '2° Portiere Riserva (Stessa Squadra)', share: 0.10, maxPrice: 6, tierTarget: 4 },
+    { label: '3° Portiere (Stessa Squadra)', share: 0.05, maxPrice: 2, tierTarget: 5 }
   ],
   D: [
     { label: '1° Top Difesa / Modificatore', share: 0.36, minPrice: 18, tierTarget: 1 },
@@ -170,10 +170,67 @@ export function optimizeSquad(
   };
 
   const selectedPlayers: Player[] = [];
-  const roles: Role[] = ['P', 'D', 'C', 'A'];
 
-  // 1. Assegna slot guidati per ogni reparto
-  roles.forEach(role => {
+  // ==========================================
+  // 1. SELEZIONE PORTIERI (BLOCCO DELLA STESSA SQUADRA)
+  // ==========================================
+  const pinnedKeepers = pinnedPlayers.filter(p => p.role === 'P');
+  pinnedKeepers.forEach(p => selectedPlayers.push(p));
+
+  let primaryGoalkeeperTeam: string | null = pinnedKeepers.length > 0 ? pinnedKeepers[0].team : null;
+
+  // Se non c'è ancora un portiere titolare pinnato, seleziona il miglior portiere titolare
+  if (!primaryGoalkeeperTeam) {
+    const keeperCandidates = availablePlayers
+      .filter(p => p.role === 'P' && !usedIds.has(p.id))
+      .map(p => {
+        const price = calculateDynamicPrice(p, totalBudget, participants);
+        const score = computePlayerScore(p, settings);
+        const fit = score * 3 - Math.abs(price - (roleTargetBudgets.P * 0.85)) * 0.7;
+        return { player: p, price, score, fit };
+      })
+      .filter(c => c.price <= roleTargetBudgets.P - 2)
+      .sort((a, b) => b.fit - a.fit);
+
+    const bestStarter = keeperCandidates[0]?.player || availablePlayers.filter(p => p.role === 'P').sort((a, b) => b.expectedPoints - a.expectedPoints)[0];
+    if (bestStarter) {
+      selectedPlayers.push(bestStarter);
+      usedIds.add(bestStarter.id);
+      primaryGoalkeeperTeam = bestStarter.team;
+    }
+  }
+
+  // Riempi i rimanenti slot portiere con riserve DELLA STESSA SQUADRA
+  const keepersCount = settings.slots.P;
+  while (selectedPlayers.filter(p => p.role === 'P').length < keepersCount) {
+    // Cerca portiere della stessa squadra
+    const sameTeamBackup = availablePlayers
+      .filter(p => p.role === 'P' && p.team === primaryGoalkeeperTeam && !usedIds.has(p.id))
+      .sort((a, b) => calculateDynamicPrice(a, totalBudget, participants) - calculateDynamicPrice(b, totalBudget, participants))[0];
+
+    if (sameTeamBackup) {
+      selectedPlayers.push(sameTeamBackup);
+      usedIds.add(sameTeamBackup.id);
+    } else {
+      // Fallback a 1 credito
+      const anyCheapBackup = availablePlayers
+        .filter(p => p.role === 'P' && !usedIds.has(p.id))
+        .sort((a, b) => calculateDynamicPrice(a, totalBudget, participants) - calculateDynamicPrice(b, totalBudget, participants))[0];
+      if (anyCheapBackup) {
+        selectedPlayers.push(anyCheapBackup);
+        usedIds.add(anyCheapBackup.id);
+      } else {
+        break;
+      }
+    }
+  }
+
+  // ==========================================
+  // 2. SELEZIONE DIFESA, CENTROCAMPO, ATTACCO
+  // ==========================================
+  const otherRoles: Role[] = ['D', 'C', 'A'];
+
+  otherRoles.forEach(role => {
     const requiredCount = settings.slots[role];
     const pinnedInRole = pinnedPlayers.filter(p => p.role === role);
     const slots = SLOT_CONFIGS[role];
@@ -251,7 +308,9 @@ export function optimizeSquad(
     }
   });
 
-  // 2. Fase di Upgrading: usa i crediti rimanenti per potenziare i giocatori di minor livello in A, C e D
+  // ==========================================
+  // 3. FASE DI UPGRADING SUL BUDGET RIMANENTE
+  // ==========================================
   let currentSpent = selectedPlayers.reduce(
     (sum, p) => sum + calculateDynamicPrice(p, totalBudget, participants),
     0
@@ -294,7 +353,7 @@ export function optimizeSquad(
     if (!upgraded) break;
   }
 
-  // 3. Calcolo metriche di riepilogo
+  // 4. Calcolo metriche di riepilogo
   const totalSpent = selectedPlayers.reduce(
     (sum, p) => sum + calculateDynamicPrice(p, totalBudget, participants),
     0
@@ -314,7 +373,7 @@ export function optimizeSquad(
     A: totalSpent > 0 ? Math.round((budgetBreakdown.A / totalSpent) * 100) : 0,
   };
 
-  // 4. Formazione titolare e panchina
+  // 5. Formazione titolare e panchina
   const { formation, startingXI, bench } = selectStartingXI(selectedPlayers, settings);
 
   const projectedFantaPoints = parseFloat(

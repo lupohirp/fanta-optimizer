@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Player, Role, LeagueSettings, GeneratedSquad } from '../types';
-import { calculateDynamicPrice, findAlternatives } from '../lib/optimizer';
+import { calculateDynamicPrice } from '../lib/optimizer';
 import { 
   Plus, 
   Trash2, 
@@ -17,8 +17,14 @@ import {
   AlertTriangle,
   CheckCircle2,
   Sliders,
-  UserCheck
+  UserCheck,
+  Save,
+  Shield,
+  Layers,
+  ArrowRight
 } from 'lucide-react';
+
+const STORAGE_CUSTOM_SQUAD_KEY = 'fanta_optimizer_custom_squad_state_v1';
 
 interface CustomSquadBuilderProps {
   allPlayers: Player[];
@@ -49,6 +55,39 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     C: [null, null, null, null, null, null, null, null],
     A: [null, null, null, null, null, null]
   });
+
+  const [saveToast, setSaveToast] = useState(false);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_CUSTOM_SQUAD_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.P && parsed.D && parsed.C && parsed.A) {
+          // Re-map players to current dataset in case of updates
+          const mappedSlots = {
+            P: parsed.P.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null),
+            D: parsed.D.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null),
+            C: parsed.C.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null),
+            A: parsed.A.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null)
+          };
+          setSelectedSlots(mappedSlots);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [allPlayers]);
+
+  // Persist to localStorage on change
+  const saveToLocalStorage = (slots: typeof selectedSlots) => {
+    try {
+      localStorage.setItem(STORAGE_CUSTOM_SQUAD_KEY, JSON.stringify(slots));
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Slot picker modal state
   const [activePickerRole, setActivePickerRole] = useState<Role | null>(null);
@@ -93,7 +132,32 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     return res;
   }, [selectedSlots, totalBudget, participants]);
 
-  // Projected FM of starting XI (best 11 among selected)
+  // Available Goalkeeper Blocks by Team
+  const goalkeeperBlocks = useMemo(() => {
+    const keepers = allPlayers.filter(p => p.role === 'P');
+    const teamsMap: Record<string, Player[]> = {};
+
+    keepers.forEach(k => {
+      if (!teamsMap[k.team]) teamsMap[k.team] = [];
+      teamsMap[k.team].push(k);
+    });
+
+    return Object.entries(teamsMap)
+      .map(([team, list]) => {
+        const sorted = list.sort((a, b) => b.expectedPoints - a.expectedPoints);
+        const top3 = sorted.slice(0, 3);
+        const blockPrice = top3.reduce((sum, p) => sum + calculateDynamicPrice(p, totalBudget, participants), 0);
+        return {
+          team,
+          starter: top3[0],
+          players: top3,
+          price: blockPrice
+        };
+      })
+      .sort((a, b) => b.starter.expectedPoints - a.starter.expectedPoints);
+  }, [allPlayers, totalBudget, participants]);
+
+  // Projected FM of starting XI
   const startingMetrics = useMemo(() => {
     if (currentPlayers.length === 0) return { fm: 0, goals: 0, assists: 0 };
 
@@ -119,16 +183,29 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
   }, [currentPlayers, selectedSlots]);
 
   // Add player to slot
-  const handleAssignPlayer = (player: Player) => {
+  const handleAssignPlayer = (player: Player, autoFillSameTeamKeepers = false) => {
     if (!activePickerRole || activePickerIndex === null) return;
 
     setSelectedSlots(prev => {
       const nextRoleList = [...prev[activePickerRole]];
       nextRoleList[activePickerIndex] = player;
-      return {
+
+      let nextPList = [...prev.P];
+      if (activePickerRole === 'P' && autoFillSameTeamKeepers) {
+        // Find same team backups
+        const teamKeepers = allPlayers
+          .filter(p => p.role === 'P' && p.team === player.team && p.id !== player.id)
+          .sort((a, b) => calculateDynamicPrice(a, totalBudget, participants) - calculateDynamicPrice(b, totalBudget, participants));
+
+        nextPList = [player, teamKeepers[0] || null, teamKeepers[1] || null];
+      }
+
+      const updated = {
         ...prev,
-        [activePickerRole]: nextRoleList
+        [activePickerRole]: activePickerRole === 'P' && autoFillSameTeamKeepers ? nextPList : nextRoleList
       };
+      saveToLocalStorage(updated);
+      return updated;
     });
 
     setActivePickerRole(null);
@@ -136,15 +213,31 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     setSearchQuery('');
   };
 
+  // Assign entire Goalkeeper Block for a team
+  const handleAssignGoalkeeperBlock = (blockKeepers: Player[]) => {
+    setSelectedSlots(prev => {
+      const updated = {
+        ...prev,
+        P: [blockKeepers[0] || null, blockKeepers[1] || null, blockKeepers[2] || null]
+      };
+      saveToLocalStorage(updated);
+      return updated;
+    });
+    setActivePickerRole(null);
+    setActivePickerIndex(null);
+  };
+
   // Remove player from slot
   const handleRemovePlayer = (role: Role, index: number) => {
     setSelectedSlots(prev => {
       const nextRoleList = [...prev[role]];
       nextRoleList[index] = null;
-      return {
+      const updated = {
         ...prev,
         [role]: nextRoleList
       };
+      saveToLocalStorage(updated);
+      return updated;
     });
   };
 
@@ -159,22 +252,51 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     };
     const used = new Set(selectedIds);
 
-    const roles: Role[] = ['P', 'D', 'C', 'A'];
+    // If no goalkeepers or partial goalkeepers, ensure single-team goalkeeper block
+    const existingKeepers = nextSlots.P.filter(Boolean) as Player[];
+    let keeperTeam = existingKeepers.length > 0 ? existingKeepers[0].team : null;
 
-    roles.forEach(role => {
+    if (!keeperTeam) {
+      // Pick best affordable goalkeeper block
+      const affordableBlock = goalkeeperBlocks.find(b => b.price <= Math.max(30, budgetLeft * 0.15)) || goalkeeperBlocks[goalkeeperBlocks.length - 1];
+      if (affordableBlock) {
+        nextSlots.P = [affordableBlock.players[0] || null, affordableBlock.players[1] || null, affordableBlock.players[2] || null];
+        affordableBlock.players.forEach(p => used.add(p.id));
+        budgetLeft -= affordableBlock.price;
+      }
+    } else {
+      // Fill missing slots for the same team
+      const sameTeam = allPlayers
+        .filter(p => p.role === 'P' && p.team === keeperTeam && !used.has(p.id))
+        .sort((a, b) => calculateDynamicPrice(a, totalBudget, participants) - calculateDynamicPrice(b, totalBudget, participants));
+
+      let sIdx = 0;
+      nextSlots.P = nextSlots.P.map(p => {
+        if (p) return p;
+        const backup = sameTeam[sIdx++];
+        if (backup) {
+          used.add(backup.id);
+          budgetLeft -= calculateDynamicPrice(backup, totalBudget, participants);
+          return backup;
+        }
+        return null;
+      });
+    }
+
+    const otherRoles: Role[] = ['D', 'C', 'A'];
+
+    otherRoles.forEach(role => {
       const list = nextSlots[role];
       list.forEach((slot, idx) => {
         if (slot !== null) return; // already filled
 
-        // Count remaining empty slots total across all roles
         let remainingEmptyTotal = 0;
-        roles.forEach(r => {
+        otherRoles.forEach(r => {
           nextSlots[r].forEach(s => { if (s === null) remainingEmptyTotal++; });
         });
 
         const maxAffordableForThisSlot = Math.max(1, budgetLeft - (remainingEmptyTotal - 1));
 
-        // Find candidate
         const candidates = allPlayers
           .filter(p => p.role === role && !used.has(p.id))
           .map(p => {
@@ -199,16 +321,66 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     });
 
     setSelectedSlots(nextSlots);
+    saveToLocalStorage(nextSlots);
+  };
+
+  // Convert to GeneratedSquad and apply
+  const handleApplyToMain = () => {
+    if (currentPlayers.length < 25) {
+      alert('La rosa non è ancora completa (25 giocatori necessari). Puoi usare il tasto "Autocompleta Slot Vuoti (AI)" per riempire gli slot mancanti!');
+      return;
+    }
+
+    const sortedP = selectedSlots.P.filter(Boolean) as Player[];
+    const sortedD = (selectedSlots.D.filter(Boolean) as Player[]).sort((a, b) => b.expectedPoints - a.expectedPoints);
+    const sortedC = (selectedSlots.C.filter(Boolean) as Player[]).sort((a, b) => b.expectedPoints - a.expectedPoints);
+    const sortedA = (selectedSlots.A.filter(Boolean) as Player[]).sort((a, b) => b.expectedPoints - a.expectedPoints);
+
+    const startingXI = [...sortedP.slice(0, 1), ...sortedD.slice(0, 3), ...sortedC.slice(0, 4), ...sortedA.slice(0, 3)];
+    const startingIds = new Set(startingXI.map(p => p.id));
+    const bench = currentPlayers.filter(p => !startingIds.has(p.id));
+
+    const customSquad: GeneratedSquad = {
+      id: `custom-squad-${Date.now()}`,
+      name: `Rosa Custom Personale (${totalBudget}cr)`,
+      season: settings.selectedSeason || '2026-27',
+      strategy: 'balanced',
+      createdAt: Date.now(),
+      players: currentPlayers,
+      pinnedPlayerIds: currentPlayers.map(p => p.id),
+      totalBudget,
+      budgetSpent: totalSpent,
+      budgetRemaining: Math.max(0, totalBudget - totalSpent),
+      projectedFantaPoints: startingMetrics.fm * 11,
+      projectedGoals: startingMetrics.goals,
+      projectedAssists: startingMetrics.assists,
+      averageStarterProbability: Math.round(currentPlayers.reduce((s, p) => s + p.starterProbability, 0) / currentPlayers.length),
+      penaltyTakersCount: currentPlayers.filter(p => p.isPenaltyTaker).length,
+      budgetBreakdown: roleSpent,
+      budgetPercentages: {
+        P: totalSpent > 0 ? Math.round((roleSpent.P / totalSpent) * 100) : 0,
+        D: totalSpent > 0 ? Math.round((roleSpent.D / totalSpent) * 100) : 0,
+        C: totalSpent > 0 ? Math.round((roleSpent.C / totalSpent) * 100) : 0,
+        A: totalSpent > 0 ? Math.round((roleSpent.A / totalSpent) * 100) : 0,
+      },
+      formation: '3-4-3',
+      startingXI,
+      bench
+    };
+
+    onSaveToMainSquad(customSquad);
   };
 
   // Reset custom board
   const handleResetBoard = () => {
-    setSelectedSlots({
+    const empty = {
       P: [null, null, null],
       D: [null, null, null, null, null, null, null, null],
       C: [null, null, null, null, null, null, null, null],
       A: [null, null, null, null, null, null]
-    });
+    };
+    setSelectedSlots(empty);
+    saveToLocalStorage(empty);
   };
 
   // Filter candidates for picker
@@ -233,7 +405,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
   }, [allPlayers, activePickerRole, selectedIds, searchQuery, filterTeam, totalBudget, participants]);
 
   const roleLabels: Record<Role, string> = {
-    P: 'Portieri (3)',
+    P: 'Portieri (Blocco Unica Squadra)',
     D: 'Difensori (8)',
     C: 'Centrocampisti (8)',
     A: 'Attaccanti (6)'
@@ -246,10 +418,13 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>🛠️ Costruttore Rosa Custom (Slot per Slot)</span>
+              <span>🛠️ Costruttore Rosa Custom (Salvataggio Automatico)</span>
+              <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.2)', color: 'var(--accent-emerald-light)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+                💾 Auto-salvato
+              </span>
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Componi manualmente la tua rosa ideale scegliendo i 25 calciatori o usa l'Autocompletamento AI
+              Componi manualmente la tua rosa o autocompleta gli slot vuoti • I dati restano salvati sul tuo dispositivo
             </p>
           </div>
 
@@ -263,6 +438,17 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               <Sparkles size={15} />
               <span>🪄 Autocompleta Slot Vuoti (AI)</span>
             </button>
+
+            {currentPlayers.length === 25 && (
+              <button
+                onClick={handleApplyToMain}
+                className="btn-primary"
+                style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px', background: 'linear-gradient(135deg, #10b981, #059669)' }}
+              >
+                <ArrowRight size={15} />
+                <span>Visualizza su Campo / Esporta</span>
+              </button>
+            )}
 
             <button
               onClick={handleResetBoard}
@@ -332,10 +518,15 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
       {/* Role Slot Sections */}
       {(['P', 'D', 'C', 'A'] as Role[]).map(role => (
         <div key={role} className="glass-card" style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className={`role-badge ${role}`}>{role}</span>
               <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>{roleLabels[role]}</h3>
+              {role === 'P' && (
+                <span style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', background: 'rgba(245, 158, 11, 0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                  🛡️ Tris Portieri Stessa Squadra
+                </span>
+              )}
             </div>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
               Spesi: <strong style={{ color: 'var(--accent-gold)' }}>{roleSpent[role]} cr</strong>
@@ -450,7 +641,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
       {/* Quick Player Picker Drawer / Modal */}
       {activePickerRole && activePickerIndex !== null && (
         <div className="modal-overlay" onClick={() => { setActivePickerRole(null); setActivePickerIndex(null); }}>
-          <div className="modal-content" style={{ maxWidth: '650px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" style={{ maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className={`role-badge ${activePickerRole}`}>{activePickerRole}</span>
@@ -462,6 +653,47 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                 <X size={18} />
               </button>
             </div>
+
+            {/* 1-Click Goalkeeper Blocks by Team */}
+            {activePickerRole === 'P' && (
+              <div style={{ marginBottom: '14px', background: 'var(--bg-card)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-gold)', marginBottom: '8px' }}>
+                  <Shield size={14} />
+                  <span>Blocchi Portieri Completi per Squadra (Tris 1°, 2°, 3° Portiere):</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '6px', maxHeight: '150px', overflowY: 'auto' }}>
+                  {goalkeeperBlocks.map(block => (
+                    <button
+                      key={block.team}
+                      onClick={() => handleAssignGoalkeeperBlock(block.players)}
+                      style={{
+                        background: 'var(--bg-input)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '6px 10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#fff' }}>
+                          Tris {block.team}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          {block.starter.name} + riserve
+                        </div>
+                      </div>
+                      <span style={{ color: 'var(--accent-gold)', fontWeight: 800, fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>
+                        {block.price} cr
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Search filter in modal */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
@@ -498,7 +730,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                   return (
                     <div
                       key={player.id}
-                      onClick={() => handleAssignPlayer(player)}
+                      onClick={() => handleAssignPlayer(player, activePickerRole === 'P')}
                       style={{
                         background: 'var(--bg-input)',
                         border: '1px solid var(--border-subtle)',
@@ -545,7 +777,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                           className="btn-primary"
                           style={{ padding: '6px 12px', fontSize: '0.78rem' }}
                         >
-                          Seleziona
+                          {activePickerRole === 'P' ? 'Seleziona + Blocco' : 'Seleziona'}
                         </button>
                       </div>
                     </div>
