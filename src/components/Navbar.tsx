@@ -7,9 +7,11 @@ import {
   Gavel, 
   Users, 
   GitCompare, 
-  BookOpen,
-  Share2,
-  FileSpreadsheet
+  BookOpen, 
+  Share2, 
+  FileSpreadsheet,
+  RefreshCw,
+  Radio
 } from 'lucide-react';
 
 export type TabType = 'generator' | 'live_auction' | 'database' | 'comparator' | 'guide';
@@ -19,6 +21,9 @@ interface NavbarProps {
   setActiveTab: (tab: TabType) => void;
   onShareWhatsApp: () => void;
   onOpenImport: () => void;
+  onManualSync: () => void;
+  isSyncing: boolean;
+  lastSyncTime: string;
   hasSquad: boolean;
   playersCount: number;
 }
@@ -28,6 +33,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   onShareWhatsApp,
   onOpenImport,
+  onManualSync,
+  isSyncing,
+  lastSyncTime,
   hasSquad,
   playersCount
 }) => {
@@ -39,7 +47,38 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
         <div>
           <div className="brand-title">FantaOptimizer Pro</div>
-          <div className="brand-subtitle">Motore Intelligente per Rose & Aste da 1° Posto</div>
+          <div className="brand-subtitle" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span>Motore Intelligente per Rose & Aste da 1° Posto</span>
+            {/* Live Sync Status Pill */}
+            <span 
+              onClick={onManualSync}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                color: 'var(--accent-emerald-light)',
+                padding: '1px 8px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              title="Clicca per forzare la sincronizzazione live con il cloud"
+            >
+              <span style={{ 
+                width: '6px', 
+                height: '6px', 
+                borderRadius: '50%', 
+                background: isSyncing ? '#f59e0b' : '#10b981',
+                boxShadow: isSyncing ? '0 0 8px #f59e0b' : '0 0 8px #10b981'
+              }} />
+              <span>{isSyncing ? 'Sincronizzazione...' : `Live Sync: ${lastSyncTime}`}</span>
+              <RefreshCw size={10} className={isSyncing ? 'spin' : ''} style={{ marginLeft: '2px' }} />
+            </span>
+          </div>
         </div>
       </div>
 
@@ -90,10 +129,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={onOpenImport}
           className="btn-secondary"
           style={{ padding: '8px 12px', fontSize: '0.82rem', gap: '6px' }}
-          title="Carica il file Excel o CSV ufficiale di Fantacalcio.it"
+          title="Carica o collega il file Excel / CSV o Google Sheets live"
         >
           <FileSpreadsheet size={15} style={{ color: 'var(--accent-emerald-light)' }} />
-          <span>Carica Excel/CSV</span>
+          <span>Carica / Feed Live</span>
         </button>
 
         {hasSquad && (

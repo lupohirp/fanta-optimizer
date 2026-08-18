@@ -3,16 +3,16 @@
 import React, { useState, useRef } from 'react';
 import { Player, Role } from '../types';
 import { parsePlayerFile } from '../lib/importer';
-import { INITIAL_PLAYERS } from '../data/players';
+import { syncLivePlayers } from '../lib/sync';
 import { 
   UploadCloud, 
   FileSpreadsheet, 
   CheckCircle2, 
   AlertCircle, 
   RefreshCw, 
-  Download,
+  Link2,
   X,
-  FileText
+  Radio
 } from 'lucide-react';
 
 interface ImportModalProps {
@@ -30,10 +30,12 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   onResetDefault,
   currentPlayersCount
 }) => {
+  const [activeTab, setActiveTab] = useState<'file' | 'link'>('file');
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [previewPlayers, setPreviewPlayers] = useState<Player[] | null>(null);
+  const [remoteFeedUrl, setRemoteFeedUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -42,14 +44,32 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const { players, errors } = await parsePlayerFile(file);
+      const { players } = await parsePlayerFile(file);
       if (players.length === 0) {
-        setErrorMsg('Nessun giocatore valido trovato nel file. Assicurati che contenga le colonne Ruolo, Nome, Squadra, Quotazione/FVM.');
+        setErrorMsg('Nessun giocatore valido trovato. Assicurati che contenga le colonne Ruolo, Nome, Squadra, Quotazione/FVM.');
       } else {
         setPreviewPlayers(players);
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Errore durante la lettura del file.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFetchRemoteUrl = async () => {
+    if (!remoteFeedUrl.trim()) return;
+    setIsLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await syncLivePlayers(remoteFeedUrl.trim());
+      if (res.success && res.players.length > 0) {
+        setPreviewPlayers(res.players);
+      } else {
+        setErrorMsg(res.message || 'Impossibile estrarre i calciatori da questo URL.');
+      }
+    } catch (err: any) {
+      setErrorMsg(`Errore: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -100,9 +120,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               <FileSpreadsheet size={22} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Importa Listino Ufficiale</h3>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Listino & Auto-Aggiornamento</h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                Carica il file Excel (.xlsx) o CSV ufficiale di Fantacalcio.it o Gazzetta
+                Carica un file Excel oppure collega un feed online in tempo reale
               </p>
             </div>
           </div>
@@ -112,43 +132,126 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           </button>
         </div>
 
-        {/* Dropzone */}
-        {!previewPlayers ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
+        {/* Tab switch File vs Live URL */}
+        {!previewPlayers && (
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', background: 'var(--bg-input)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
+            <button
+              onClick={() => setActiveTab('file')}
               style={{
-                border: `2px dashed ${isDragging ? 'var(--accent-emerald)' : 'var(--border-subtle)'}`,
-                background: isDragging ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-input)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '36px 20px',
-                textAlign: 'center',
+                flex: 1,
+                padding: '8px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                background: activeTab === 'file' ? 'var(--bg-card)' : 'transparent',
+                color: activeTab === 'file' ? '#fff' : 'var(--text-secondary)',
+                border: activeTab === 'file' ? '1px solid var(--border-subtle)' : 'none',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
               }}
             >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx, .xls, .csv"
-                style={{ display: 'none' }}
-                onChange={handleFileChange}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                <UploadCloud size={40} style={{ color: isDragging ? 'var(--accent-emerald-light)' : 'var(--text-secondary)' }} />
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                    Trascina qui il file Excel/CSV o clicca per sfogliare
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                    Supporta direttamente i file ufficiali di <strong>Fantacalcio.it</strong> (Quotazioni_Fantacalcio_*.xlsx)
+              <FileSpreadsheet size={15} />
+              <span>Carica File (.xlsx / .csv)</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('link')}
+              style={{
+                flex: 1,
+                padding: '8px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                background: activeTab === 'link' ? 'var(--bg-card)' : 'transparent',
+                color: activeTab === 'link' ? '#fff' : 'var(--text-secondary)',
+                border: activeTab === 'link' ? '1px solid var(--border-subtle)' : 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <Link2 size={15} />
+              <span>Feed Live URL (Google Sheet)</span>
+            </button>
+          </div>
+        )}
+
+        {/* Content based on Tab */}
+        {!previewPlayers ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {activeTab === 'file' ? (
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: `2px dashed ${isDragging ? 'var(--accent-emerald)' : 'var(--border-subtle)'}`,
+                  background: isDragging ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-input)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '36px 20px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx, .xls, .csv"
+                  style={{ display: 'none' }}
+                  onChange={handleFileChange}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                  <UploadCloud size={40} style={{ color: isDragging ? 'var(--accent-emerald-light)' : 'var(--text-secondary)' }} />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                      Trascina qui il file Excel/CSV o clicca per sfogliare
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Supporta i file ufficiali di <strong>Fantacalcio.it</strong> (Quotazioni_Fantacalcio_*.xlsx)
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  Collega un <strong>Google Sheet pubblicato come CSV</strong> o un endpoint web per sincronizzare automaticamente le modifiche della tua lega o del listone:
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="url"
+                    placeholder="https://docs.google.com/spreadsheets/.../pub?output=csv"
+                    value={remoteFeedUrl}
+                    onChange={(e) => setRemoteFeedUrl(e.target.value)}
+                    style={{
+                      flex: 1,
+                      background: 'var(--bg-input)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '10px 14px',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.88rem'
+                    }}
+                  />
+                  <button
+                    onClick={handleFetchRemoteUrl}
+                    disabled={isLoading || !remoteFeedUrl.trim()}
+                    className="btn-primary"
+                    style={{ padding: '10px 16px', fontSize: '0.88rem' }}
+                  >
+                    {isLoading ? <RefreshCw size={16} className="spin" /> : 'Sincronizza'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {errorMsg && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '10px 14px', borderRadius: 'var(--radius-md)', color: '#f87171', fontSize: '0.85rem' }}>
@@ -159,7 +262,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', flexWrap: 'wrap', gap: '10px' }}>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Database attuale: <strong>{currentPlayersCount}</strong> calciatori
+                Database attivo: <strong>{currentPlayersCount}</strong> calciatori
               </div>
 
               <button
@@ -172,21 +275,21 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 style={{ padding: '7px 12px', fontSize: '0.78rem', gap: '6px' }}
               >
                 <RefreshCw size={13} />
-                <span>Ripristina Lista Default</span>
+                <span>Ripristina Default</span>
               </button>
             </div>
           </div>
         ) : (
-          /* Preview screen before applying */
+          /* Preview screen */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '12px 16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <CheckCircle2 size={20} style={{ color: 'var(--accent-emerald-light)' }} />
               <div>
                 <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--accent-emerald-light)' }}>
-                  File riconosciuto con successo!
+                  Dati pronti per l'applicazione!
                 </div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Trovati <strong>{previewPlayers.length} calciatori</strong> pronti per essere importati nel motore di ottimizzazione.
+                  Riconosciuti <strong>{previewPlayers.length} calciatori</strong>.
                 </div>
               </div>
             </div>
@@ -219,7 +322,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 className="btn-secondary"
                 style={{ flex: 1 }}
               >
-                Scegli un altro file
+                Annulla
               </button>
 
               <button
@@ -229,7 +332,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 style={{ flex: 1.5 }}
               >
                 <CheckCircle2 size={16} />
-                <span>Applica Listino ({previewPlayers.length} Giocatori)</span>
+                <span>Applica ({previewPlayers.length} Giocatori)</span>
               </button>
             </div>
           </div>

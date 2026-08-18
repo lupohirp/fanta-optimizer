@@ -5,6 +5,7 @@ import { Player, LeagueSettings, GeneratedSquad } from '../types';
 import { INITIAL_PLAYERS } from '../data/players';
 import { optimizeSquad, findAlternatives, calculateDynamicPrice } from '../lib/optimizer';
 import { formatSquadForWhatsApp, exportSquadToCSV } from '../lib/export';
+import { syncLivePlayers, getLastSyncInfo } from '../lib/sync';
 
 import { Navbar, TabType } from '../components/Navbar';
 import { ConfigPanel } from '../components/ConfigPanel';
@@ -34,23 +35,11 @@ const STORAGE_PLAYERS_KEY = 'fanta_optimizer_custom_players';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('generator');
-  const [allPlayers, setAllPlayers] = useState<Player[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(STORAGE_PLAYERS_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return INITIAL_PLAYERS;
-  });
-
+  const [allPlayers, setAllPlayers] = useState<Player[]>(INITIAL_PLAYERS);
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState('Oggi');
   const [viewMode, setViewMode] = useState<'pitch' | 'table'>('pitch');
   const [selectedPlayerForModal, setSelectedPlayerForModal] = useState<Player | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -96,6 +85,51 @@ export default function Home() {
     }, 3500);
   };
 
+  // Background Live Sync on Startup
+  useEffect(() => {
+    const syncInfo = getLastSyncInfo();
+    setLastSyncTime(syncInfo.formattedTime);
+
+    // Check if custom saved in storage
+    const saved = localStorage.getItem(STORAGE_PLAYERS_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAllPlayers(parsed);
+          setSquad(optimizeSquad(parsed, settings, []));
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Auto sync from live API in background
+    syncLivePlayers().then(result => {
+      if (result.success && result.players.length > 0) {
+        setAllPlayers(result.players);
+        setSquad(optimizeSquad(result.players, settings, []));
+        setLastSyncTime('Adesso');
+      }
+    });
+  }, []);
+
+  // Manual Trigger for Live Sync
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    const result = await syncLivePlayers();
+    setIsSyncing(false);
+    if (result.success && result.players.length > 0) {
+      setAllPlayers(result.players);
+      setSquad(optimizeSquad(result.players, settings, pinnedIds));
+      setLastSyncTime('Adesso');
+      showToast(`🟢 Sincronizzazione Live completata! (${result.count} giocatori)`);
+    } else {
+      showToast('⚠️ Utilizzo lista integrata locale.');
+    }
+  };
+
   // Generation handler
   const handleGenerateSquad = useCallback(() => {
     setIsGenerating(true);
@@ -107,7 +141,7 @@ export default function Home() {
     }, 250);
   }, [allPlayers, settings, pinnedIds]);
 
-  // Import handler for official Excel / CSV file
+  // Import handler for official Excel / CSV file or Live URL
   const handleImportSuccess = (newPlayers: Player[]) => {
     setAllPlayers(newPlayers);
     try {
@@ -115,9 +149,10 @@ export default function Home() {
     } catch (e) {
       console.error(e);
     }
-    setPinnedIds([]); // reset pinned ids for new list
+    setPinnedIds([]);
     const generated = optimizeSquad(newPlayers, settings, []);
     setSquad(generated);
+    setLastSyncTime('Adesso');
     showToast(`🎉 Importati ${newPlayers.length} calciatori ufficiali! Rosa ricalcolata.`);
   };
 
@@ -132,6 +167,7 @@ export default function Home() {
     setPinnedIds([]);
     const generated = optimizeSquad(INITIAL_PLAYERS, settings, []);
     setSquad(generated);
+    setLastSyncTime('Oggi');
     showToast('🔄 Ripristinato il listino predefinito.');
   };
 
@@ -220,6 +256,9 @@ export default function Home() {
         setActiveTab={setActiveTab} 
         onShareWhatsApp={handleShareWhatsApp}
         onOpenImport={() => setIsImportModalOpen(true)}
+        onManualSync={handleManualSync}
+        isSyncing={isSyncing}
+        lastSyncTime={lastSyncTime}
         hasSquad={Boolean(squad)}
         playersCount={allPlayers.length}
       />
@@ -232,7 +271,7 @@ export default function Home() {
             {allPlayers.length !== INITIAL_PLAYERS.length && (
               <div className="notice-banner" style={{ marginBottom: '16px' }}>
                 <FileSpreadsheet size={18} />
-                <span>Stai utilizzando un listino personalizzato con <strong>{allPlayers.length} calciatori</strong>.</span>
+                <span>Stai utilizzando un listino sincronizzato con <strong>{allPlayers.length} calciatori</strong>.</span>
               </div>
             )}
 
