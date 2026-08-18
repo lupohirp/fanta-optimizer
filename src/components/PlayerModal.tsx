@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Player } from '../types';
-import { calculateDynamicPrice } from '../lib/optimizer';
+import { calculateDynamicPrice, getPlayerAuctionRange } from '../lib/optimizer';
 import { 
   Pin, 
   PinOff, 
@@ -17,6 +17,8 @@ import {
   Edit3,
   Calendar,
   History,
+  Coins,
+  Gavel,
   X
 } from 'lucide-react';
 
@@ -42,6 +44,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
   if (!player) return null;
 
   const dynamicPrice = calculateDynamicPrice(player, totalBudget, participants);
+  const auctionRange = getPlayerAuctionRange(player, totalBudget, participants);
   const history = player.historicalStats && player.historicalStats.length > 0 ? player.historicalStats[0] : null;
 
   return (
@@ -59,7 +62,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
                 <span className={`role-badge ${player.role}`}>{player.role}</span>
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {player.team} • Tier {player.tier}
+                {player.team} • Tier {player.tier} • {player.starterProbability}% Titolarità
               </div>
             </div>
           </div>
@@ -84,11 +87,11 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
         </div>
 
         {/* Price and FM highlights */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '18px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '16px' }}>
           <div className="stat-widget" style={{ padding: '10px' }}>
-            <span className="stat-widget-label">Prezzo Asta Stimato</span>
+            <span className="stat-widget-label">Prezzo Medio Asta</span>
             <span className="stat-widget-value" style={{ color: 'var(--accent-gold)' }}>
-              {dynamicPrice} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>cr</span>
+              {auctionRange.avg} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>cr</span>
             </span>
           </div>
 
@@ -100,25 +103,57 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           </div>
 
           <div className="stat-widget" style={{ padding: '10px' }}>
-            <span className="stat-widget-label">Quotazione Listino</span>
+            <span className="stat-widget-label">Quotazione Ufficiale</span>
             <span className="stat-widget-value">
               {player.quotation}
             </span>
           </div>
 
           <div className="stat-widget" style={{ padding: '10px' }}>
-            <span className="stat-widget-label">Titolarità Stimata</span>
-            <span className="stat-widget-value">
+            <span className="stat-widget-label">Titolarità Attesa</span>
+            <span className="stat-widget-value" style={{ color: player.starterProbability >= 85 ? 'var(--accent-emerald-light)' : '#fbbf24' }}>
               {player.starterProbability}%
             </span>
+          </div>
+        </div>
+
+        {/* Real Auction Market Stats (Prezzi Medi d'Asta Reali) */}
+        <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: '16px' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-gold)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Gavel size={14} />
+            <span>CAMPIONE PREZZI ASTA REALI (CAMPIONATO ITALIANO)</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center' }}>
+            <div style={{ background: 'var(--bg-card)', padding: '8px', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Prezzo Minimo (Affare)</div>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--accent-emerald-light)', fontFamily: 'var(--font-mono)' }}>
+                {auctionRange.min} cr
+              </div>
+            </div>
+
+            <div style={{ background: 'var(--bg-card)', padding: '8px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--accent-gold)' }}>Prezzo Medio d'Asta</div>
+              <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--accent-gold)', fontFamily: 'var(--font-mono)' }}>
+                {auctionRange.avg} cr
+              </div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>~{auctionRange.budgetPercentage}% budget</div>
+            </div>
+
+            <div style={{ background: 'var(--bg-card)', padding: '8px', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Prezzo Massimo (Hype)</div>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f87171', fontFamily: 'var(--font-mono)' }}>
+                {auctionRange.max} cr
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Historical Stats Section */}
         {history && (
           <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: '16px' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-gold)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <History size={14} />
+            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <History size={14} style={{ color: 'var(--accent-emerald-light)' }} />
               <span>DATI STORICI STAGIONE {history.season.replace('-', '/')} (t-1)</span>
             </div>
 

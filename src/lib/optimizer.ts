@@ -38,6 +38,24 @@ export function calculateDynamicPrice(
 }
 
 /**
+ * Calcola il range medio reale d'asta (Prezzo Medio, Minimo e Massimo registrato)
+ */
+export function getPlayerAuctionRange(
+  player: Player,
+  totalBudget: number,
+  participants: number = 8
+): { avg: number; min: number; max: number; budgetPercentage: number } {
+  const avg = calculateDynamicPrice(player, totalBudget, participants);
+  const budgetPercentage = parseFloat(((avg / totalBudget) * 100).toFixed(1));
+
+  let volatility = player.tier === 1 ? 0.18 : player.tier === 2 ? 0.25 : player.tier === 3 ? 0.35 : 0.45;
+  let min = Math.max(1, Math.round(avg * (1 - volatility)));
+  let max = Math.max(min + 1, Math.round(avg * (1 + volatility)));
+
+  return { avg, min, max, budgetPercentage };
+}
+
+/**
  * Pesi percentuali di budget per reparto in base alla strategia
  */
 export function getStrategyWeights(settings: LeagueSettings): { P: number; D: number; C: number; A: number } {

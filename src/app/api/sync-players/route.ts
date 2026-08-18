@@ -14,6 +14,18 @@ const teamMap: Record<string, string> = {
   'FRO': 'Frosinone', 'SAS': 'Sassuolo'
 };
 
+function cleanName(str: string): string {
+  return str
+    .replace(/&#xE8;/g, 'e')
+    .replace(/&#xE9;/g, 'e')
+    .replace(/&#xE0;/g, 'a')
+    .replace(/&#xF2;/g, 'o')
+    .replace(/&#xF9;/g, 'u')
+    .replace(/&#xEC;/g, 'i')
+    .replace(/[\.\s\']/g, '')
+    .toLowerCase();
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const targetSeason = searchParams.get('season') || getCurrentSeason();
@@ -50,14 +62,13 @@ export async function GET(request: Request) {
         const quotation = parseInt(match[4].trim()) || 1;
         const rawFvm = parseInt(match[5].trim()) || null;
 
-        const nameKey = name.toLowerCase();
-        const hist = (historicalStatsMap as any)[nameKey] || 
-          Object.values(historicalStatsMap).find((s: any) => s.name.toLowerCase().includes(nameKey) || nameKey.includes(s.name.toLowerCase()));
+        const pClean = cleanName(name);
+        const hist: any = Object.values(historicalStatsMap).find((s: any) => cleanName(s.name) === pClean || cleanName(s.name).includes(pClean) || pClean.includes(cleanName(s.name)));
 
         let expectedPoints = 6.0;
         let expectedGoals = 0;
         let expectedAssists = 0;
-        let starterProbability = 75;
+        let starterProbability = 50;
         let isPenaltyTaker = quotation >= 25;
         let isFreeKickTaker = quotation >= 16;
         let historicalStats: HistoricalStats[] = [];
@@ -77,17 +88,17 @@ export async function GET(request: Request) {
             redCards: hist.redCards
           }];
 
-          const weightHist = Math.min(0.85, (hist.played / 38) * 0.95);
-          const baseline = quotation >= 25 ? (role === 'A' ? 7.8 : 7.2) : (role === 'A' ? 6.8 : 6.3);
-          expectedPoints = parseFloat((hist.fantaAvg * weightHist + baseline * (1 - weightHist)).toFixed(2));
-          
-          const expMatches = Math.max(22, Math.min(36, Math.round((hist.played / 38) * 36)));
-          const perMatchGoals = hist.played > 0 ? (hist.goals / hist.played) : 0;
-          const perMatchAssists = hist.played > 0 ? (hist.assists / hist.played) : 0;
+          const played = hist.played;
+          if (played >= 30) starterProbability = 95;
+          else if (played >= 25) starterProbability = 90;
+          else if (played >= 20) starterProbability = 82;
+          else if (played >= 15) starterProbability = 68;
+          else if (played >= 10) starterProbability = 50;
+          else starterProbability = 35;
 
-          expectedGoals = Math.round(perMatchGoals * expMatches);
-          expectedAssists = Math.round(perMatchAssists * expMatches);
-          starterProbability = Math.min(95, Math.round((hist.played / 38) * 100));
+          expectedPoints = parseFloat(hist.fantaAvg.toFixed(2));
+          expectedGoals = hist.goals;
+          expectedAssists = hist.assists;
           isPenaltyTaker = hist.penaltiesScored > 0 || isPenaltyTaker;
         } else {
           // Stima per giocatori nuovi senza storico Serie A
@@ -138,6 +149,11 @@ export async function GET(request: Request) {
           else tier = 5;
         }
 
+        const budgetPercentage = parseFloat(((estimatedPrice500 / 500) * 100).toFixed(1));
+        const volatility = tier === 1 ? 0.18 : tier === 2 ? 0.25 : tier === 3 ? 0.35 : 0.45;
+        const minAuctionPrice500 = Math.max(1, Math.round(estimatedPrice500 * (1 - volatility)));
+        const maxAuctionPrice500 = Math.max(minAuctionPrice500 + 1, Math.round(estimatedPrice500 * (1 + volatility)));
+
         parsedPlayers.push({
           id: `p-${targetSeason}-${idCounter++}`,
           name,
@@ -153,8 +169,12 @@ export async function GET(request: Request) {
           expectedGoals,
           expectedAssists,
           trend: 'stable',
-          notes: hist ? `Listone ${targetSeason} • Storico ${prevSeason1}: ${hist.played} PG, FM ${hist.fantaAvg}, ${hist.goals} Gol, ${hist.assists} Assist` : `Listone ${targetSeason} • Quotazione ${quotation} • FVM ${rawFvm || quotation}`,
-          historicalStats
+          notes: hist ? `Listone ${targetSeason} • ${hist.played} presenze nel ${prevSeason1} (Titolarità ${starterProbability}%)` : `Listone ${targetSeason} • Quotazione ${quotation} • FVM ${rawFvm || quotation}`,
+          historicalStats,
+          avgAuctionPrice500: estimatedPrice500,
+          minAuctionPrice500,
+          maxAuctionPrice500,
+          budgetPercentage
         });
       }
 

@@ -32,6 +32,10 @@ export interface Player {
   notes?: string;             // Consigli / scout notes
   historicalStats?: HistoricalStats[]; // Statistiche stagioni precedenti
   valueIndex?: number;        // Indice di convenienza (xP / Prezzo)
+  avgAuctionPrice500?: number; // Prezzo medio reale registrato nelle aste (base 500)
+  minAuctionPrice500?: number; // Range minimo asta reale
+  maxAuctionPrice500?: number; // Range massimo asta reale
+  budgetPercentage?: number;   // Percentuale media sul budget complessivo (%)
 }
 
 export type StrategyType = 
