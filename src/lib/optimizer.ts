@@ -24,13 +24,12 @@ export function calculateDynamicPrice(
   // Prezzo base sul listino a 500
   let price500 = player.estimatedPrice500 || player.quotation || 1;
 
-  // I top player (tier 1 e 2) subiscono una crescita esponenziale con la scarsità
+  // I top player (tier 1 e 2) subiscono una crescita con la scarsità
   if (player.tier === 1) {
     price500 = price500 * (1 + (scarcityFactor - 1) * 1.4);
   } else if (player.tier === 2) {
     price500 = price500 * (1 + (scarcityFactor - 1) * 1.1);
   } else if (player.tier === 5) {
-    // I low cost restano bassi (1-2 crediti)
     return Math.max(1, Math.round(budgetRatio));
   }
 
@@ -45,21 +44,19 @@ export function getStrategyWeights(settings: LeagueSettings): { P: number; D: nu
   const strat = STRATEGIES[settings.strategy] || STRATEGIES.balanced;
   const weights = { ...strat.budgetWeights };
 
-  // Se il modificatore di difesa è attivo e la strategia non lo includeva già, potenzia la difesa
+  // Se il modificatore di difesa è attivo, potenzia la difesa
   if (settings.defenseModifier && settings.strategy !== 'defense_modifier') {
     weights.D += 0.05;
     weights.A -= 0.03;
     weights.C -= 0.02;
   }
 
-  // Se è attivo il bonus porta inviolata, aumenta leggermente l'investimento sul portiere
   if (settings.cleanSheetBonus) {
     weights.P += 0.02;
     weights.C -= 0.01;
     weights.D -= 0.01;
   }
 
-  // Normalizza la somma a 1.0
   const sum = weights.P + weights.D + weights.C + weights.A;
   return {
     P: weights.P / sum,
@@ -70,61 +67,67 @@ export function getStrategyWeights(settings: LeagueSettings): { P: number; D: nu
 }
 
 /**
- * Configurazione degli slot per ruolo con target di prezzo e tier
+ * Configurazione degli slot per ruolo con target di prezzo, tier e titolarità minima
  */
-const SLOT_CONFIGS: Record<Role, Array<{ label: string; share: number; minPrice?: number; maxPrice?: number; tierTarget: number }>> = {
+const SLOT_CONFIGS: Record<Role, Array<{ label: string; share: number; minPrice?: number; maxPrice?: number; minStarter?: number; tierTarget: number }>> = {
   P: [
     { label: '1° Portiere Titolare Top', share: 0.85, minPrice: 15, tierTarget: 1 },
     { label: '2° Portiere Riserva (Stessa Squadra)', share: 0.10, maxPrice: 6, tierTarget: 4 },
     { label: '3° Portiere (Stessa Squadra)', share: 0.05, maxPrice: 2, tierTarget: 5 }
   ],
   D: [
-    { label: '1° Top Difesa / Modificatore', share: 0.36, minPrice: 18, tierTarget: 1 },
-    { label: '2° Semitop Spinta', share: 0.24, minPrice: 12, tierTarget: 2 },
-    { label: '3° Titolare da Bonus', share: 0.16, minPrice: 8, tierTarget: 3 },
-    { label: '4° Titolare Sicuro', share: 0.10, minPrice: 4, tierTarget: 3 },
-    { label: '5° Titolare Regolare', share: 0.06, minPrice: 3, tierTarget: 4 },
-    { label: '6° Rotazione', share: 0.04, maxPrice: 3, tierTarget: 4 },
-    { label: '7° Scommessa', share: 0.02, maxPrice: 2, tierTarget: 5 },
-    { label: '8° Copertura (1 cr)', share: 0.02, maxPrice: 1, tierTarget: 5 }
+    { label: '1° Top Difesa / Modificatore', share: 0.36, minPrice: 16, minStarter: 85, tierTarget: 1 },
+    { label: '2° Semitop Spinta', share: 0.24, minPrice: 10, minStarter: 85, tierTarget: 2 },
+    { label: '3° Titolare da Bonus', share: 0.16, minPrice: 6, minStarter: 85, tierTarget: 3 },
+    { label: '4° Titolare Sicuro', share: 0.10, minPrice: 4, minStarter: 85, tierTarget: 3 },
+    { label: '5° Titolare Regolare', share: 0.06, minPrice: 3, minStarter: 80, tierTarget: 4 },
+    { label: '6° Titolare Certezza Voto', share: 0.04, minStarter: 80, tierTarget: 4 },
+    { label: '7° Titolare Low Cost', share: 0.02, minStarter: 80, tierTarget: 5 },
+    { label: '8° Certezza Voto (1 cr)', share: 0.02, minStarter: 80, tierTarget: 5 }
   ],
   C: [
-    { label: '1° Top Rigorista/Bonus', share: 0.38, minPrice: 30, tierTarget: 1 },
-    { label: '2° Semitop Incursore', share: 0.24, minPrice: 18, tierTarget: 2 },
-    { label: '3° Titolare Bonus', share: 0.16, minPrice: 10, tierTarget: 3 },
-    { label: '4° Titolare Sicuro', share: 0.10, minPrice: 5, tierTarget: 3 },
-    { label: '5° Regolare', share: 0.05, minPrice: 3, tierTarget: 4 },
-    { label: '6° Rotazione', share: 0.03, maxPrice: 3, tierTarget: 4 },
-    { label: '7° Scommessa', share: 0.02, maxPrice: 2, tierTarget: 5 },
-    { label: '8° Copertura (1 cr)', share: 0.02, maxPrice: 1, tierTarget: 5 }
+    { label: '1° Top Rigorista/Bonus', share: 0.38, minPrice: 28, minStarter: 85, tierTarget: 1 },
+    { label: '2° Semitop Incursore', share: 0.24, minPrice: 16, minStarter: 85, tierTarget: 2 },
+    { label: '3° Titolare Bonus', share: 0.16, minPrice: 8, minStarter: 85, tierTarget: 3 },
+    { label: '4° Titolare Sicuro', share: 0.10, minPrice: 5, minStarter: 85, tierTarget: 3 },
+    { label: '5° Regolare', share: 0.05, minPrice: 3, minStarter: 80, tierTarget: 4 },
+    { label: '6° Titolare Certezza Voto', share: 0.03, minStarter: 80, tierTarget: 4 },
+    { label: '7° Titolare Low Cost', share: 0.02, minStarter: 80, tierTarget: 5 },
+    { label: '8° Certezza Voto (1 cr)', share: 0.02, minStarter: 80, tierTarget: 5 }
   ],
   A: [
-    { label: '1° Top Bomber Assoluto', share: 0.58, minPrice: 80, tierTarget: 1 },
-    { label: '2° Secondo Titolare', share: 0.22, minPrice: 25, tierTarget: 2 },
-    { label: '3° Terzo Attaccante', share: 0.12, minPrice: 10, tierTarget: 3 },
-    { label: '4° Titolare Provincia', share: 0.05, minPrice: 4, tierTarget: 3 },
-    { label: '5° Spaccapartite', share: 0.02, maxPrice: 3, tierTarget: 4 },
-    { label: '6° Scommessa (1 cr)', share: 0.01, maxPrice: 1, tierTarget: 5 }
+    { label: '1° Top Bomber Assoluto', share: 0.58, minPrice: 80, minStarter: 85, tierTarget: 1 },
+    { label: '2° Secondo Titolare', share: 0.22, minPrice: 20, minStarter: 85, tierTarget: 2 },
+    { label: '3° Terzo Attaccante', share: 0.12, minPrice: 10, minStarter: 85, tierTarget: 3 },
+    { label: '4° Titolare Provincia', share: 0.05, minPrice: 4, minStarter: 80, tierTarget: 3 },
+    { label: '5° Titolare Low Cost', share: 0.02, minStarter: 80, tierTarget: 4 },
+    { label: '6° Certezza Voto (1 cr)', share: 0.01, minStarter: 80, tierTarget: 5 }
   ]
 };
 
 /**
- * Score complessivo di un calciatore per l'algoritmo di selezione
+ * Score complessivo di un calciatore con massima priorità alla CERTEZZA DEL VOTO (Titolarità)
  */
 function computePlayerScore(player: Player, settings: LeagueSettings): number {
   let score = player.expectedPoints * 10;
 
-  // Premia la titolarità (fondamentale per non prendere s.v.)
-  score += (player.starterProbability / 100) * 15;
+  // PRIORITÀ MASSIMA: Titolarità & Certezza di voto
+  score += (player.starterProbability / 100) * 35;
+
+  if (player.starterProbability >= 85) {
+    score += 15; // Bonus Titolare Inamovibile
+  } else if (player.starterProbability < 60) {
+    score -= 40; // Penalità severa per panchinari a rischio s.v.
+  }
 
   // Bonus rigoristi
   if (player.isPenaltyTaker) {
-    score += 12;
+    score += 14;
   }
 
   // Bonus piazzati
   if (player.isFreeKickTaker) {
-    score += 5;
+    score += 6;
   }
 
   // Modificatore di difesa: premia difensori con media voto pura alta
@@ -153,15 +156,12 @@ export function optimizeSquad(
   const totalBudget = settings.totalBudget;
   const participants = settings.participants;
 
-  // Filtra blacklist
   const availablePlayers = allPlayers.filter(p => !blacklistedIds.includes(p.id));
   const usedIds = new Set<string>();
 
-  // Giocatori pinnati (inseriti prioritariamente)
   const pinnedPlayers = availablePlayers.filter(p => pinnedIds.includes(p.id));
   pinnedPlayers.forEach(p => usedIds.add(p.id));
 
-  // Budget target per ruolo
   const roleTargetBudgets: Record<Role, number> = {
     P: Math.round(totalBudget * weights.P),
     D: Math.round(totalBudget * weights.D),
@@ -179,7 +179,6 @@ export function optimizeSquad(
 
   let primaryGoalkeeperTeam: string | null = pinnedKeepers.length > 0 ? pinnedKeepers[0].team : null;
 
-  // Se non c'è ancora un portiere titolare pinnato, seleziona il miglior portiere titolare
   if (!primaryGoalkeeperTeam) {
     const keeperCandidates = availablePlayers
       .filter(p => p.role === 'P' && !usedIds.has(p.id))
@@ -200,10 +199,9 @@ export function optimizeSquad(
     }
   }
 
-  // Riempi i rimanenti slot portiere con riserve DELLA STESSA SQUADRA
+  // Riempi le riserve portiere della STESSA SQUADRA
   const keepersCount = settings.slots.P;
   while (selectedPlayers.filter(p => p.role === 'P').length < keepersCount) {
-    // Cerca portiere della stessa squadra
     const sameTeamBackup = availablePlayers
       .filter(p => p.role === 'P' && p.team === primaryGoalkeeperTeam && !usedIds.has(p.id))
       .sort((a, b) => calculateDynamicPrice(a, totalBudget, participants) - calculateDynamicPrice(b, totalBudget, participants))[0];
@@ -212,7 +210,6 @@ export function optimizeSquad(
       selectedPlayers.push(sameTeamBackup);
       usedIds.add(sameTeamBackup.id);
     } else {
-      // Fallback a 1 credito
       const anyCheapBackup = availablePlayers
         .filter(p => p.role === 'P' && !usedIds.has(p.id))
         .sort((a, b) => calculateDynamicPrice(a, totalBudget, participants) - calculateDynamicPrice(b, totalBudget, participants))[0];
@@ -226,7 +223,7 @@ export function optimizeSquad(
   }
 
   // ==========================================
-  // 2. SELEZIONE DIFESA, CENTROCAMPO, ATTACCO
+  // 2. SELEZIONE DIFESA, CENTROCAMPO, ATTACCO CON TITOLARITÀ PRIORITARIA
   // ==========================================
   const otherRoles: Role[] = ['D', 'C', 'A'];
 
@@ -235,18 +232,14 @@ export function optimizeSquad(
     const pinnedInRole = pinnedPlayers.filter(p => p.role === role);
     const slots = SLOT_CONFIGS[role];
 
-    // Spesa sui pinnati
     const spentOnPinned = pinnedInRole.reduce(
       (sum, p) => sum + calculateDynamicPrice(p, totalBudget, participants),
       0
     );
 
     let budgetLeftInRole = Math.max(requiredCount - pinnedInRole.length, roleTargetBudgets[role] - spentOnPinned);
-
-    // Aggiungi prima i pinnati
     pinnedInRole.forEach(p => selectedPlayers.push(p));
 
-    // Riempi i rimanenti slot
     let neededCount = requiredCount - pinnedInRole.length;
     const availableSlots = slots.slice(pinnedInRole.length);
 
@@ -257,7 +250,6 @@ export function optimizeSquad(
       const targetForSlot = Math.max(1, Math.round(budgetLeftInRole * slot.share));
       const maxAffordable = Math.max(1, budgetLeftInRole - (remainingSlots - 1));
 
-      // Scala i prezzi min/max sul budget totale attuale
       const scale = totalBudget / 500;
       const scaledMinPrice = slot.minPrice ? Math.max(1, Math.round(slot.minPrice * scale)) : undefined;
       const scaledMaxPrice = slot.maxPrice ? Math.max(1, Math.round(slot.maxPrice * scale)) : undefined;
@@ -271,18 +263,24 @@ export function optimizeSquad(
           let fit = score * 3;
           if (scaledMinPrice && price < scaledMinPrice) fit -= (scaledMinPrice - price) * 8;
           if (scaledMaxPrice && price > scaledMaxPrice) fit -= (price - scaledMaxPrice) * 12;
+          
+          // Penalità pesante se il giocatore non raggiunge la titolarità minima richiesta per lo slot
+          if (slot.minStarter && p.starterProbability < slot.minStarter) {
+            fit -= (slot.minStarter - p.starterProbability) * 3;
+          }
+
           fit -= Math.abs(price - targetForSlot) * 0.7;
 
-          return { player: p, price, score, fit };
+          return { player: p, price, score, fit, starterProb: p.starterProbability };
         })
         .filter(c => c.price <= maxAffordable)
         .sort((a, b) => b.fit - a.fit);
 
       const chosen = candidates[0] || availablePlayers
         .filter(p => p.role === role && !usedIds.has(p.id))
-        .map(p => ({ player: p, price: calculateDynamicPrice(p, totalBudget, participants) }))
+        .map(p => ({ player: p, price: calculateDynamicPrice(p, totalBudget, participants), starterProb: p.starterProbability }))
         .filter(c => c.price <= maxAffordable)
-        .sort((a, b) => a.price - b.price)[0];
+        .sort((a, b) => b.starterProb - a.starterProb)[0];
 
       if (chosen) {
         const p = chosen.player;
@@ -294,11 +292,11 @@ export function optimizeSquad(
       }
     });
 
-    // Fallback di emergenza se mancano slot
+    // Fallback di emergenza garantendo il giocatore con più titolarità
     while (neededCount > 0) {
       const fallback = availablePlayers
         .filter(p => p.role === role && !usedIds.has(p.id))
-        .sort((a, b) => calculateDynamicPrice(a, totalBudget, participants) - calculateDynamicPrice(b, totalBudget, participants))[0];
+        .sort((a, b) => b.starterProbability - a.starterProbability)[0];
 
       if (fallback) {
         selectedPlayers.push(fallback);
@@ -309,7 +307,7 @@ export function optimizeSquad(
   });
 
   // ==========================================
-  // 3. FASE DI UPGRADING SUL BUDGET RIMANENTE
+  // 3. FASE DI UPGRADING SUL BUDGET RIMANENTE (PREFERENDO TITOLARI)
   // ==========================================
   let currentSpent = selectedPlayers.reduce(
     (sum, p) => sum + calculateDynamicPrice(p, totalBudget, participants),
@@ -333,6 +331,7 @@ export function optimizeSquad(
             !usedIds.has(p.id) && 
             calculateDynamicPrice(p, totalBudget, participants) > item.price && 
             calculateDynamicPrice(p, totalBudget, participants) <= maxAffordable && 
+            p.starterProbability >= 80 &&
             p.expectedPoints > item.p.expectedPoints
           )
           .sort((a, b) => b.expectedPoints - a.expectedPoints);
@@ -373,7 +372,6 @@ export function optimizeSquad(
     A: totalSpent > 0 ? Math.round((budgetBreakdown.A / totalSpent) * 100) : 0,
   };
 
-  // 5. Formazione titolare e panchina
   const { formation, startingXI, bench } = selectStartingXI(selectedPlayers, settings);
 
   const projectedFantaPoints = parseFloat(
