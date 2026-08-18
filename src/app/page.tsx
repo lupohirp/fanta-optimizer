@@ -150,7 +150,7 @@ export default function Home() {
   const handleGenerateSquad = useCallback(() => {
     setIsGenerating(true);
     setTimeout(() => {
-      const generated = optimizeSquad(allPlayers, settings, pinnedIds);
+      const generated = optimizeSquad(allPlayers, settings, pinnedIds, [], Math.floor(Math.random() * 1e9));
       setSquad(generated);
       setIsGenerating(false);
       showToast(`⚡ Rosa ${formatSeasonLabel(settings.selectedSeason)} ottimizzata!`);

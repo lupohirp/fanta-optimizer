@@ -140,6 +140,24 @@ const STRATEGY_ADHERENCE = 0.25;
  */
 const BENCH_WEIGHT = 0.4;
 
+/**
+ * Ampiezza della perturbazione casuale degli score quando si genera con un seed:
+ * ±4% fa ruotare i giocatori con punteggi quasi pari producendo rose diverse
+ * ma sempre vicine all'ottimo. Senza seed la generazione è deterministica.
+ */
+const SCORE_JITTER = 0.04;
+
+/** PRNG deterministico (mulberry32): stesso seed → stessa rosa */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    let t = (a += 0x6D2B79F5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 /** Massimo numero di giocatori di movimento della stessa squadra (diversificazione rischio) */
 const MAX_PER_TEAM = 3;
 
@@ -316,7 +334,8 @@ export function optimizeSquad(
   allPlayers: Player[],
   settings: LeagueSettings,
   pinnedIds: string[] = [],
-  blacklistedIds: string[] = []
+  blacklistedIds: string[] = [],
+  seed?: number
 ): GeneratedSquad {
   const weights = getStrategyWeights(settings);
   const totalBudget = settings.totalBudget;
@@ -332,11 +351,15 @@ export function optimizeSquad(
     }
     return v;
   };
+  const rand = seed !== undefined ? mulberry32(seed) : null;
   const scoreCache = new Map<string, number>();
   const scoreFor = (p: Player): number => {
     let v = scoreCache.get(p.id);
     if (v === undefined) {
       v = computePlayerScore(p, settings);
+      if (rand) {
+        v *= 1 + (rand() - 0.5) * 2 * SCORE_JITTER;
+      }
       scoreCache.set(p.id, v);
     }
     return v;
