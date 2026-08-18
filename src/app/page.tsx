@@ -32,7 +32,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-const STORAGE_PLAYERS_KEY = 'fanta_optimizer_official_players';
+const STORAGE_PLAYERS_KEY = 'fanta_optimizer_official_2026_27_v3';
 
 export default function Home() {
   const currentSeason = getCurrentSeason();
