@@ -16,7 +16,8 @@ import {
   UserCheck,
   UserPlus,
   Edit3,
-  RefreshCw
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 
 interface PlayerDatabaseProps {
@@ -50,7 +51,7 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
     tier: 'ALL',
     onlyPenaltyTakers: false,
     onlyStarters: false,
-    sortBy: 'points',
+    sortBy: 'starter',
     sortOrder: 'desc'
   });
 
@@ -88,7 +89,13 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
         const priceB = calculateDynamicPrice(b, totalBudget, participants);
         let comparison = 0;
 
-        if (filters.sortBy === 'points') {
+        if (filters.sortBy === 'starter') {
+          if (b.starterProbability !== a.starterProbability) {
+            comparison = b.starterProbability - a.starterProbability;
+          } else {
+            comparison = b.expectedPoints - a.expectedPoints;
+          }
+        } else if (filters.sortBy === 'points') {
           comparison = b.expectedPoints - a.expectedPoints;
         } else if (filters.sortBy === 'price') {
           comparison = priceB - priceA;
@@ -120,7 +127,7 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Listone Ufficiale Serie A 2026/27</h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Quotazioni e FVM ufficiali Fantacalcio.it sincronizzati in tempo reale
+              Ordinamento prioritario per Titolarità & Certezza di voto
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -218,21 +225,21 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.82rem' }}>
             <input
               type="checkbox"
-              checked={filters.onlyPenaltyTakers}
-              onChange={(e) => setFilters(prev => ({ ...prev, onlyPenaltyTakers: e.target.checked }))}
+              checked={filters.onlyStarters}
+              onChange={(e) => setFilters(prev => ({ ...prev, onlyStarters: e.target.checked }))}
               style={{ accentColor: 'var(--accent-emerald)' }}
             />
-            <span>🎯 Solo Rigoristi</span>
+            <span style={{ fontWeight: 700, color: 'var(--accent-emerald-light)' }}>⚡ Solo Titolari Fissi (≥80%)</span>
           </label>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.82rem' }}>
             <input
               type="checkbox"
-              checked={filters.onlyStarters}
-              onChange={(e) => setFilters(prev => ({ ...prev, onlyStarters: e.target.checked }))}
+              checked={filters.onlyPenaltyTakers}
+              onChange={(e) => setFilters(prev => ({ ...prev, onlyPenaltyTakers: e.target.checked }))}
               style={{ accentColor: 'var(--accent-emerald)' }}
             />
-            <span>⚡ Solo Titolari Fissi (≥80%)</span>
+            <span>🎯 Solo Rigoristi</span>
           </label>
 
           <div style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -255,6 +262,12 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
                   </div>
                 </th>
                 <th style={{ padding: '12px 14px' }}>Squadra</th>
+                <th style={{ padding: '12px 14px', textAlign: 'center', cursor: 'pointer' }} onClick={() => handleSortChange('starter')}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                    <span>⚡ Titolarità</span>
+                    <ArrowUpDown size={12} />
+                  </div>
+                </th>
                 <th style={{ padding: '12px 14px', textAlign: 'center', cursor: 'pointer' }} onClick={() => handleSortChange('quotation')}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
                     <span>Quot.</span>
@@ -287,6 +300,7 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
               {filteredPlayers.map(p => {
                 const isPinned = pinnedIds.includes(p.id);
                 const price = calculateDynamicPrice(p, totalBudget, participants);
+                const isHighStarter = p.starterProbability >= 85;
 
                 return (
                   <tr 
@@ -314,6 +328,20 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
 
                     <td style={{ padding: '12px 14px', color: 'var(--text-secondary)' }}>
                       {p.team}
+                    </td>
+
+                    <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                      <span style={{ 
+                        background: isHighStarter ? 'rgba(16, 185, 129, 0.15)' : p.starterProbability >= 70 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                        color: isHighStarter ? 'var(--accent-emerald-light)' : p.starterProbability >= 70 ? '#fbbf24' : '#f87171',
+                        padding: '3px 8px',
+                        borderRadius: 'var(--radius-sm)',
+                        fontWeight: 800,
+                        fontSize: '0.82rem',
+                        fontFamily: 'var(--font-mono)'
+                      }}>
+                        {p.starterProbability}%
+                      </span>
                     </td>
 
                     <td style={{ padding: '12px 14px', textAlign: 'center', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>

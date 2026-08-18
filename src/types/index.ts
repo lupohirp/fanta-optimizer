@@ -136,6 +136,6 @@ export interface FilterOptions {
   tier: number | 'ALL';
   onlyPenaltyTakers: boolean;
   onlyStarters: boolean;
-  sortBy: 'price' | 'points' | 'quotation' | 'name' | 'goals' | 'value';
+  sortBy: 'price' | 'points' | 'quotation' | 'name' | 'goals' | 'value' | 'starter';
   sortOrder: 'asc' | 'desc';
 }

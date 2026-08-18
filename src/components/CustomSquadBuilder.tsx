@@ -21,7 +21,9 @@ import {
   Save,
   Shield,
   Layers,
-  ArrowRight
+  ArrowRight,
+  ArrowUpDown,
+  Flame
 } from 'lucide-react';
 
 const STORAGE_CUSTOM_SQUAD_KEY = 'fanta_optimizer_custom_squad_state_v2';
@@ -91,6 +93,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
   const [activePickerIndex, setActivePickerIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTeam, setFilterTeam] = useState('ALL');
+  const [pickerSortBy, setPickerSortBy] = useState<'starter' | 'points' | 'price_asc' | 'price_desc'>('starter');
 
   // Flattened all selected players
   const currentPlayers = useMemo(() => {
@@ -240,8 +243,6 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
   // Magic Autocomplete: Uses the AI Optimizer engine with current chosen players as pinned
   const handleMagicFill = () => {
     const pinnedIds = currentPlayers.map(p => p.id);
-
-    // Call full optimizer preserving all chosen players and proper budget distribution
     const generated = optimizeSquad(allPlayers, settings, pinnedIds);
 
     const generatedP = generated.players.filter(p => p.role === 'P');
@@ -249,7 +250,6 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     const generatedC = generated.players.filter(p => p.role === 'C');
     const generatedA = generated.players.filter(p => p.role === 'A');
 
-    // Fill slots prioritizing already placed players
     const buildRoleSlots = (currentRoleSlots: Array<Player | null>, genPool: Player[]) => {
       const result: Array<Player | null> = [...currentRoleSlots];
       const usedInRole = new Set(result.filter(Boolean).map(p => p!.id));
@@ -334,7 +334,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     saveToLocalStorage(empty);
   };
 
-  // Filter candidates for picker
+  // Filter & SORT candidates for picker: PRIMARY SORT IS TITOLARITÀ (STARTER PROBABILITY)
   const pickerCandidates = useMemo(() => {
     if (!activePickerRole) return [];
     return allPlayers
@@ -352,8 +352,23 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
         player: p,
         price: calculateDynamicPrice(p, totalBudget, participants)
       }))
-      .sort((a, b) => b.player.expectedPoints - a.player.expectedPoints);
-  }, [allPlayers, activePickerRole, selectedIds, searchQuery, filterTeam, totalBudget, participants]);
+      .sort((a, b) => {
+        if (pickerSortBy === 'starter') {
+          // 1° Criterio: Titolarità decrescente (95%, 90%, 82%...)
+          if (b.player.starterProbability !== a.player.starterProbability) {
+            return b.player.starterProbability - a.player.starterProbability;
+          }
+          // 2° Criterio: FantaMedia decrescente
+          return b.player.expectedPoints - a.player.expectedPoints;
+        } else if (pickerSortBy === 'points') {
+          return b.player.expectedPoints - a.player.expectedPoints;
+        } else if (pickerSortBy === 'price_asc') {
+          return a.price - b.price;
+        } else {
+          return b.price - a.price;
+        }
+      });
+  }, [allPlayers, activePickerRole, selectedIds, searchQuery, filterTeam, pickerSortBy, totalBudget, participants]);
 
   const roleLabels: Record<Role, string> = {
     P: 'Portieri (Blocco Unica Squadra)',
@@ -375,7 +390,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               </span>
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Componi manualmente la tua rosa o autocompleta gli slot vuoti • I dati restano salvati sul tuo dispositivo
+              Componi manualmente la tua rosa o autocompleta gli slot vuoti • Ordinamento per titolarità & certezza voto
             </p>
           </div>
 
@@ -516,7 +531,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                           {player.name}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          {player.team} • FM {player.expectedPoints.toFixed(1)} {player.isPenaltyTaker && '• 🎯'}
+                          {player.team} • <span style={{ color: player.starterProbability >= 85 ? 'var(--accent-emerald-light)' : 'var(--text-muted)', fontWeight: 700 }}>{player.starterProbability}% Titolare</span>
                         </div>
                       </div>
                     </div>
@@ -592,8 +607,8 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
       {/* Quick Player Picker Drawer / Modal */}
       {activePickerRole && activePickerIndex !== null && (
         <div className="modal-overlay" onClick={() => { setActivePickerRole(null); setActivePickerIndex(null); }}>
-          <div className="modal-content" style={{ maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div className="modal-content" style={{ maxWidth: '700px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className={`role-badge ${activePickerRole}`}>{activePickerRole}</span>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>
@@ -646,9 +661,9 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               </div>
             )}
 
-            {/* Search filter in modal */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-              <div style={{ position: 'relative', flex: 1 }}>
+            {/* Search and Sort Filter Toolbar */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
                 <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
@@ -661,11 +676,60 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                     background: 'var(--bg-input)',
                     border: '1px solid var(--border-subtle)',
                     borderRadius: 'var(--radius-md)',
-                    padding: '9px 12px 9px 36px',
+                    padding: '8px 12px 8px 36px',
                     color: 'var(--text-primary)',
-                    fontSize: '0.88rem'
+                    fontSize: '0.85rem'
                   }}
                 />
+              </div>
+
+              {/* Sorting Pills: Starter is Default */}
+              <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-card)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <button
+                  onClick={() => setPickerSortBy('starter')}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    background: pickerSortBy === 'starter' ? 'var(--accent-emerald)' : 'transparent',
+                    color: pickerSortBy === 'starter' ? '#fff' : 'var(--text-secondary)',
+                    cursor: 'pointer'
+                  }}
+                  title="Ordina per percentuale di titolarità e presenze"
+                >
+                  ⚡ Titolarità (Fissi)
+                </button>
+
+                <button
+                  onClick={() => setPickerSortBy('points')}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    background: pickerSortBy === 'points' ? 'var(--accent-emerald)' : 'transparent',
+                    color: pickerSortBy === 'points' ? '#fff' : 'var(--text-secondary)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  📈 FantaMedia
+                </button>
+
+                <button
+                  onClick={() => setPickerSortBy('price_asc')}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    background: pickerSortBy === 'price_asc' ? 'var(--accent-emerald)' : 'transparent',
+                    color: pickerSortBy === 'price_asc' ? '#fff' : 'var(--text-secondary)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  💰 1 cr
+                </button>
               </div>
             </div>
 
@@ -676,8 +740,10 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                   Nessun calciatore trovato con questi filtri.
                 </div>
               ) : (
-                pickerCandidates.slice(0, 50).map(({ player, price }) => {
+                pickerCandidates.slice(0, 60).map(({ player, price }) => {
                   const isAffordable = price <= remainingBudget;
+                  const isHighStarter = player.starterProbability >= 85;
+
                   return (
                     <div
                       key={player.id}
@@ -703,11 +769,27 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                       }}
                     >
                       <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#fff' }}>
-                          {player.name} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>({player.team})</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#fff' }}>
+                            {player.name}
+                          </span>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                            ({player.team})
+                          </span>
+                          {isHighStarter && (
+                            <span style={{ fontSize: '0.68rem', background: 'rgba(16, 185, 129, 0.2)', color: 'var(--accent-emerald-light)', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                              ⚡ Titolare Fisso
+                            </span>
+                          )}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          FM attesa: <strong style={{ color: 'var(--accent-emerald-light)' }}>{player.expectedPoints.toFixed(1)}</strong> • Titolarità: {player.starterProbability}% {player.isPenaltyTaker && '• 🎯 Rigorista'}
+
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '3px' }}>
+                          Titolarità: <strong style={{ color: isHighStarter ? 'var(--accent-emerald-light)' : player.starterProbability >= 70 ? '#fbbf24' : '#ef4444' }}>{player.starterProbability}%</strong>
+                          {' • '}FM: <strong style={{ color: '#fff' }}>{player.expectedPoints.toFixed(1)}</strong>
+                          {player.isPenaltyTaker && ' • 🎯 Rigori'}
+                          {player.historicalStats && player.historicalStats[0] && (
+                            <span style={{ color: 'var(--text-secondary)' }}> ({player.historicalStats[0].played} presenze t-1)</span>
+                          )}
                         </div>
                       </div>
 
