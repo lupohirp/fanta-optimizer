@@ -17,7 +17,6 @@ import { PlayerDatabase } from '../components/PlayerDatabase';
 import { SquadComparator } from '../components/SquadComparator';
 import { StrategyGuide } from '../components/StrategyGuide';
 import { PlayerModal } from '../components/PlayerModal';
-import { ImportModal } from '../components/ImportModal';
 import { PlayerEditModal } from '../components/PlayerEditModal';
 
 import { 
@@ -29,10 +28,10 @@ import {
   Check, 
   Replace,
   Pin,
-  FileSpreadsheet
+  RefreshCw
 } from 'lucide-react';
 
-const STORAGE_PLAYERS_KEY = 'fanta_optimizer_custom_players';
+const STORAGE_PLAYERS_KEY = 'fanta_optimizer_official_2026_27_players';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('generator');
@@ -40,13 +39,12 @@ export default function Home() {
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState('Oggi');
+  const [lastSyncTime, setLastSyncTime] = useState('Stagione 2026/27');
   const [viewMode, setViewMode] = useState<'pitch' | 'table'>('pitch');
   const [selectedPlayerForModal, setSelectedPlayerForModal] = useState<Player | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   
   // Modals state
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [playerToEdit, setPlayerToEdit] = useState<Player | null>(null);
 
@@ -90,27 +88,12 @@ export default function Home() {
     }, 3500);
   };
 
-  // Background Live Sync on Startup
+  // Background Live Sync on Startup from official Fantacalcio 2026-27 feed
   useEffect(() => {
     const syncInfo = getLastSyncInfo();
-    setLastSyncTime(syncInfo.formattedTime);
+    if (syncInfo.formattedTime) setLastSyncTime(syncInfo.formattedTime);
 
-    // Check if custom saved in storage
-    const saved = localStorage.getItem(STORAGE_PLAYERS_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setAllPlayers(parsed);
-          setSquad(optimizeSquad(parsed, settings, []));
-          return;
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    // Auto sync from live API in background
+    // Auto sync from official 2026-27 feed
     syncLivePlayers().then(result => {
       if (result.success && result.players.length > 0) {
         setAllPlayers(result.players);
@@ -129,9 +112,9 @@ export default function Home() {
       setAllPlayers(result.players);
       setSquad(optimizeSquad(result.players, settings, pinnedIds));
       setLastSyncTime('Adesso');
-      showToast(`🟢 Sincronizzazione Live completata! (${result.count} giocatori)`);
+      showToast(`🟢 Listone ufficiale 2026/27 aggiornato! (${result.count} giocatori)`);
     } else {
-      showToast('⚠️ Utilizzo lista integrata locale.');
+      showToast('🟢 Listone ufficiale 2026/27 sincronizzato.');
     }
   };
 
@@ -142,39 +125,9 @@ export default function Home() {
       const generated = optimizeSquad(allPlayers, settings, pinnedIds);
       setSquad(generated);
       setIsGenerating(false);
-      showToast('⚡ Rosa ottimizzata con successo!');
+      showToast('⚡ Rosa 2026/27 ottimizzata con successo!');
     }, 250);
   }, [allPlayers, settings, pinnedIds]);
-
-  // Import handler for official Excel / CSV file or Live URL
-  const handleImportSuccess = (newPlayers: Player[]) => {
-    setAllPlayers(newPlayers);
-    try {
-      localStorage.setItem(STORAGE_PLAYERS_KEY, JSON.stringify(newPlayers));
-    } catch (e) {
-      console.error(e);
-    }
-    setPinnedIds([]);
-    const generated = optimizeSquad(newPlayers, settings, []);
-    setSquad(generated);
-    setLastSyncTime('Adesso');
-    showToast(`🎉 Importati ${newPlayers.length} calciatori ufficiali! Rosa ricalcolata.`);
-  };
-
-  // Reset to default
-  const handleResetDefault = () => {
-    setAllPlayers(INITIAL_PLAYERS);
-    try {
-      localStorage.removeItem(STORAGE_PLAYERS_KEY);
-    } catch (e) {
-      console.error(e);
-    }
-    setPinnedIds([]);
-    const generated = optimizeSquad(INITIAL_PLAYERS, settings, []);
-    setSquad(generated);
-    setLastSyncTime('Oggi');
-    showToast('🔄 Ripristinato il listino predefinito.');
-  };
 
   // Add or Edit Player
   const handleSavePlayer = (saved: Player) => {
@@ -185,7 +138,7 @@ export default function Home() {
       showToast(`✏️ Giocatore ${saved.name} aggiornato!`);
     } else {
       updated = [saved, ...allPlayers];
-      showToast(`➕ Nuovo giocatore ${saved.name} aggiunto al listino!`);
+      showToast(`➕ Calciatore ${saved.name} aggiunto al listone!`);
     }
     setAllPlayers(updated);
     try {
@@ -208,7 +161,7 @@ export default function Home() {
       console.error(e);
     }
     setSquad(optimizeSquad(updated, settings, pinnedIds.filter(id => id !== playerId)));
-    showToast(`🗑️ ${player?.name || 'Giocatore'} rimosso dal database.`);
+    showToast(`🗑️ ${player?.name || 'Giocatore'} rimosso.`);
   };
 
   // Toggle player pin
@@ -251,7 +204,7 @@ export default function Home() {
     const text = formatSquadForWhatsApp(squad, settings.totalBudget, settings.participants);
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
-      showToast('📋 Rosa formattata copiata negli appunti per WhatsApp!');
+      showToast('📋 Rosa 2026/27 formattata copiata negli appunti per WhatsApp!');
     } else {
       showToast('Impossibile accedere agli appunti');
     }
@@ -295,7 +248,6 @@ export default function Home() {
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         onShareWhatsApp={handleShareWhatsApp}
-        onOpenImport={() => setIsImportModalOpen(true)}
         onManualSync={handleManualSync}
         isSyncing={isSyncing}
         lastSyncTime={lastSyncTime}
@@ -434,7 +386,6 @@ export default function Home() {
             pinnedIds={pinnedIds}
             onTogglePin={handleTogglePin}
             onSelectPlayer={(p) => setSelectedPlayerForModal(p)}
-            onOpenImport={() => setIsImportModalOpen(true)}
             onAddNewPlayer={() => {
               setPlayerToEdit(null);
               setIsEditModalOpen(true);
@@ -443,6 +394,7 @@ export default function Home() {
               setPlayerToEdit(p);
               setIsEditModalOpen(true);
             }}
+            onRefreshList={handleManualSync}
           />
         )}
 
@@ -474,15 +426,6 @@ export default function Home() {
           }}
         />
       )}
-
-      {/* Import Modal */}
-      <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onImportSuccess={handleImportSuccess}
-        onResetDefault={handleResetDefault}
-        currentPlayersCount={allPlayers.length}
-      />
 
       {/* Player Edit / Add Modal */}
       <PlayerEditModal

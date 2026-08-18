@@ -14,9 +14,9 @@ import {
   Crosshair,
   ShieldAlert,
   UserCheck,
-  FileSpreadsheet,
   UserPlus,
-  Edit3
+  Edit3,
+  RefreshCw
 } from 'lucide-react';
 
 interface PlayerDatabaseProps {
@@ -26,9 +26,9 @@ interface PlayerDatabaseProps {
   pinnedIds: string[];
   onTogglePin: (playerId: string) => void;
   onSelectPlayer: (player: Player) => void;
-  onOpenImport?: () => void;
   onAddNewPlayer?: () => void;
   onEditPlayer?: (player: Player) => void;
+  onRefreshList?: () => void;
 }
 
 export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
@@ -38,9 +38,9 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
   pinnedIds,
   onTogglePin,
   onSelectPlayer,
-  onOpenImport,
   onAddNewPlayer,
-  onEditPlayer
+  onEditPlayer,
+  onRefreshList
 }) => {
   const [filters, setFilters] = useState<FilterOptions>({
     search: '',
@@ -118,12 +118,24 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
       <div className="glass-card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Listino & Database Calciatori</h2>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Listone Ufficiale Serie A 2026/27</h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Esplora statistiche, fanta-medie, rigoristi e personalizza i calciatori per l'asta
+              Quotazioni e FVM ufficiali Fantacalcio.it sincronizzati in tempo reale
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {onRefreshList && (
+              <button
+                onClick={onRefreshList}
+                className="btn-secondary"
+                style={{ padding: '7px 12px', fontSize: '0.82rem', gap: '6px' }}
+                title="Aggiorna listone con il feed ufficiale"
+              >
+                <RefreshCw size={14} style={{ color: 'var(--accent-emerald-light)' }} />
+                <span>Aggiorna Dati</span>
+              </button>
+            )}
+
             {onAddNewPlayer && (
               <button
                 onClick={onAddNewPlayer}
@@ -132,17 +144,6 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
               >
                 <UserPlus size={15} />
                 <span>+ Aggiungi Calciatore</span>
-              </button>
-            )}
-
-            {onOpenImport && (
-              <button
-                onClick={onOpenImport}
-                className="btn-secondary"
-                style={{ padding: '7px 12px', fontSize: '0.82rem', gap: '6px' }}
-              >
-                <FileSpreadsheet size={15} style={{ color: 'var(--accent-emerald-light)' }} />
-                <span>Carica / Feed Live</span>
               </button>
             )}
           </div>
