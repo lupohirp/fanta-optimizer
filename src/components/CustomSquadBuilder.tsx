@@ -25,7 +25,10 @@ import {
   ArrowUpDown,
   Flame,
   Activity,
-  Edit3
+  Edit3,
+  Bot,
+  RefreshCw,
+  Sparkle
 } from 'lucide-react';
 
 const STORAGE_CUSTOM_SQUAD_KEY = 'fanta_optimizer_custom_squad_state_v3';
@@ -59,6 +62,9 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     C: [null, null, null, null, null, null, null, null],
     A: [null, null, null, null, null, null]
   });
+
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiTacticalReview, setAiTacticalReview] = useState<{ text: string; model?: string } | null>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -262,8 +268,65 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     });
   };
 
-  // Magic Autocomplete: Uses the AI Optimizer engine with current chosen players as pinned
-  const handleMagicFill = () => {
+  // Magic Autocomplete with Google Gemini AI or local optimizer fallback
+  const handleMagicFill = async () => {
+    setIsAiLoading(true);
+    setAiTacticalReview(null);
+
+    const apiKey = settings.geminiApiKey || (typeof window !== 'undefined' ? localStorage.getItem('fanta_optimizer_gemini_api_key_v1') : undefined);
+
+    try {
+      // Try Google AI Studio Gemini route
+      const response = await fetch('/api/ai-autocomplete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey,
+          selectedSlots,
+          remainingBudget,
+          totalBudget,
+          participants,
+          strategy: settings.strategy,
+          allPlayers
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.selectedPlayerIds) {
+        // Map player IDs returned by Gemini into empty slots
+        const nextSlots = {
+          P: [...selectedSlots.P],
+          D: [...selectedSlots.D],
+          C: [...selectedSlots.C],
+          A: [...selectedSlots.A]
+        };
+
+        (['P', 'D', 'C', 'A'] as Role[]).forEach(role => {
+          const ids: string[] = result.selectedPlayerIds[role] || [];
+          let idIdx = 0;
+          for (let i = 0; i < nextSlots[role].length; i++) {
+            if (nextSlots[role][i] === null && idIdx < ids.length) {
+              const matched = allPlayers.find(p => p.id === ids[idIdx++]);
+              if (matched) nextSlots[role][i] = matched;
+            }
+          }
+        });
+
+        setSelectedSlots(nextSlots);
+        saveToLocalStorage(nextSlots);
+        setAiTacticalReview({
+          text: result.tacticalReview,
+          model: result.modelUsed || 'Google Gemini 2.5 Flash'
+        });
+        setIsAiLoading(false);
+        return;
+      }
+    } catch (e) {
+      console.warn('Gemini AI Autocomplete failed, using local optimizer engine...', e);
+    }
+
+    // Fallback: Local Statistical Optimization Engine
     const pinnedIds = currentPlayers.map(p => p.id);
     const generated = optimizeSquad(allPlayers, settings, pinnedIds);
 
@@ -295,6 +358,10 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
 
     setSelectedSlots(nextSlots);
     saveToLocalStorage(nextSlots);
+    setAiTacticalReview({
+      text: 'Rosa completata con l\'algoritmo euristico locale (Titolari fissi garantiti e tris portieri). Per attivare Google Gemini AI, inserisci la chiave gratuita nelle impostazioni!'
+    });
+    setIsAiLoading(false);
   };
 
   // Convert to GeneratedSquad and apply
@@ -353,6 +420,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
       A: [null, null, null, null, null, null]
     };
     setSelectedSlots(empty);
+    setAiTacticalReview(null);
     saveToLocalStorage(empty);
   };
 
@@ -404,25 +472,35 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>🛠️ Costruttore Rosa Custom & Valori Personalizzati</span>
+              <span>🛠️ Costruttore Rosa Custom (Google AI Studio)</span>
               <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.2)', color: 'var(--accent-emerald-light)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
                 💾 Auto-salvato
               </span>
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Componi la tua rosa, visualizza FantaMedia (FM) & Titolarità per ciascun giocatore
+              Componi la tua rosa o lascia che Google Gemini AI completi gli slot vuoti con la migliore combinazione
             </p>
           </div>
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
               onClick={handleMagicFill}
+              disabled={isAiLoading}
               className="btn-primary"
               style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px' }}
-              title="Completa gli slot vuoti ottimizzando i crediti residui con il budget corretto per reparto"
+              title="Completa gli slot vuoti con Google Gemini 2.5 Flash AI"
             >
-              <Sparkles size={15} />
-              <span>🪄 Autocompleta Slot Vuoti (AI)</span>
+              {isAiLoading ? (
+                <>
+                  <RefreshCw size={15} className="spin" />
+                  <span>Gemini AI in elaborazione...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={15} />
+                  <span>🪄 Autocompleta con Gemini AI</span>
+                </>
+              )}
             </button>
 
             {currentPlayers.length === 25 && (
@@ -446,6 +524,44 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Gemini AI Tactical Review Alert */}
+        {aiTacticalReview && (
+          <div style={{ 
+            background: 'rgba(16, 185, 129, 0.08)', 
+            border: '1px solid rgba(16, 185, 129, 0.3)', 
+            borderRadius: 'var(--radius-md)', 
+            padding: '12px 14px', 
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px'
+          }}>
+            <Bot size={20} style={{ color: 'var(--accent-emerald-light)', flexShrink: 0, marginTop: '2px' }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                <strong style={{ fontSize: '0.85rem', color: 'var(--accent-emerald-light)' }}>
+                  Analisi Tattica Gemini AI
+                </strong>
+                {aiTacticalReview.model && (
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                    ({aiTacticalReview.model})
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: 1.4, margin: 0 }}>
+                {aiTacticalReview.text}
+              </p>
+            </div>
+            <button 
+              onClick={() => setAiTacticalReview(null)}
+              className="btn-icon"
+              style={{ width: '22px', height: '22px', flexShrink: 0 }}
+            >
+              <X size={12} />
+            </button>
+          </div>
+        )}
 
         {/* Live Counters */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginBottom: '16px' }}>
