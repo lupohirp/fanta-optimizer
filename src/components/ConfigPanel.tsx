@@ -4,16 +4,17 @@ import React from 'react';
 import { LeagueSettings, StrategyType } from '../types';
 import { STRATEGIES } from '../data/players';
 import { getAvailableSeasons, formatSeasonLabel, getCurrentSeason } from '../lib/season';
-import { 
-  Coins, 
-  Users2, 
-  ShieldCheck, 
-  Sparkles, 
-  RefreshCw, 
+import {
+  Coins,
+  Users2,
+  ShieldCheck,
+  Sparkles,
+  RefreshCw,
   Pin,
   Sliders,
   Calendar,
-  Bot
+  Bot,
+  LayoutGrid
 } from 'lucide-react';
 
 interface ConfigPanelProps {
@@ -35,6 +36,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 }) => {
   const quickBudgets = [300, 500, 600, 1000];
   const participantOptions = [6, 8, 10, 12];
+  const formationOptions: LeagueSettings['targetFormation'][] = ['auto', '3-4-3', '4-3-3', '3-5-2', '4-4-2', '4-2-3-1'];
   const availableSeasons = getAvailableSeasons();
   const currentSeason = getCurrentSeason();
 
@@ -63,8 +65,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <Sliders size={18} />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Impostazioni della Lega</h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Configura parametri, stagione, budget e modello AI</p>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Impostazioni Lega</h2>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Budget, partecipanti, modulo e strategia</p>
           </div>
         </div>
 
@@ -206,6 +208,44 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </div>
         </div>
 
+        {/* Target Formation */}
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+            <LayoutGrid size={15} style={{ color: 'var(--role-a-text)' }} />
+            <span>Modulo</span>
+          </label>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {formationOptions.map(f => {
+              const isSelected = settings.targetFormation === f;
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setSettings(prev => ({ ...prev, targetFormation: f }))}
+                  style={{
+                    background: isSelected ? 'var(--accent-emerald)' : 'var(--bg-input)',
+                    color: isSelected ? '#fff' : 'var(--text-secondary)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '7px 11px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    fontFamily: f === 'auto' ? 'inherit' : 'var(--font-mono)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {f === 'auto' ? 'Auto' : f}
+                </button>
+              );
+            })}
+          </div>
+          {settings.defenseModifier && settings.targetFormation === 'auto' && (
+            <p style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', marginTop: '6px' }}>
+              Mod. difesa attivo: in Auto si gioca con almeno 4 difensori
+            </p>
+          )}
+        </div>
+
         {/* Modifiers & Bonuses */}
         <div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
@@ -235,54 +275,68 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
       </div>
 
-      {/* Google AI Studio Gemini Engine Card */}
-      <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-emerald-light)' }}>
-            <Bot size={16} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.88rem', fontWeight: 800 }}>Motore Google AI Studio</span>
-              <span style={{ fontSize: '0.7rem', background: 'rgba(16, 185, 129, 0.2)', color: 'var(--accent-emerald-light)', padding: '1px 7px', borderRadius: '4px', fontWeight: 700 }}>
-                .env.local
-              </span>
-            </div>
-            <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: 0 }}>
-              Chiave gestita via environment server (<code style={{ color: 'var(--accent-gold)' }}>GEMINI_API_KEY</code>)
-            </p>
+      {/* Advanced AI settings (collapsed by default) */}
+      <details style={{ marginBottom: '20px' }}>
+        <summary style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          cursor: 'pointer',
+          fontSize: '0.8rem',
+          fontWeight: 600,
+          color: 'var(--text-muted)',
+          listStyle: 'none',
+          userSelect: 'none'
+        }}>
+          <Bot size={14} />
+          <span>Impostazioni AI (avanzate)</span>
+        </summary>
+        <div style={{
+          marginTop: '10px',
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-md)',
+          padding: '12px 14px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '10px'
+        }}>
+          <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: 0 }}>
+            L&apos;AI scrive pagelle e commenti tattici; la rosa la calcola sempre l&apos;ottimizzatore.
+            Richiede <code style={{ color: 'var(--accent-gold)' }}>GEMINI_API_KEY</code> in .env.local.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Modello:</span>
+            <select
+              value={settings.geminiModel || 'gemini-3.5-flash-lite'}
+              onChange={(e) => setSettings(prev => ({ ...prev, geminiModel: e.target.value }))}
+              style={{
+                background: 'var(--bg-input)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: '6px 12px',
+                color: 'var(--accent-emerald-light)',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                fontFamily: 'var(--font-mono)'
+              }}
+            >
+              <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Predefinito)</option>
+              <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+              <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+              <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+            </select>
           </div>
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Modello AI:</span>
-          <select
-            value={settings.geminiModel || 'gemini-3.5-flash-lite'}
-            onChange={(e) => setSettings(prev => ({ ...prev, geminiModel: e.target.value }))}
-            style={{
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              padding: '6px 12px',
-              color: 'var(--accent-emerald-light)',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              fontFamily: 'var(--font-mono)'
-            }}
-          >
-            <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Predefinito)</option>
-            <option value="gemini-3.5-flash">gemini-3.5-flash</option>
-            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
-            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
-          </select>
-        </div>
-      </div>
+      </details>
 
       {/* Strategy selector cards */}
       <div style={{ marginBottom: '20px' }}>
         <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px' }}>
-          Seleziona Strategia di Rosa:
+          Strategia d&apos;asta
         </div>
         <div style={{ 
           display: 'grid', 
@@ -311,19 +365,6 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.3 }}>
                   {strat.shortDesc}
                 </div>
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '4px', 
-                  marginTop: '8px', 
-                  fontSize: '0.68rem', 
-                  fontFamily: 'var(--font-mono)',
-                  color: 'var(--text-muted)' 
-                }}>
-                  <span>P:{Math.round(strat.budgetWeights.P * 100)}%</span>
-                  <span>D:{Math.round(strat.budgetWeights.D * 100)}%</span>
-                  <span>C:{Math.round(strat.budgetWeights.C * 100)}%</span>
-                  <span>A:{Math.round(strat.budgetWeights.A * 100)}%</span>
-                </div>
               </div>
             );
           })}
@@ -331,12 +372,12 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       </div>
 
       {/* Main Trigger Button */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
         <button
           onClick={onGenerate}
           disabled={isGenerating}
           className="btn-primary"
-          style={{ width: '100%', maxWidth: '300px', padding: '14px 24px', fontSize: '1rem' }}
+          style={{ width: '100%', maxWidth: '340px', padding: '14px 24px', fontSize: '1rem' }}
         >
           {isGenerating ? (
             <>

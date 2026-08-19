@@ -4,32 +4,16 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Player, Role, LeagueSettings, GeneratedSquad } from '../types';
 import { calculateDynamicPrice, optimizeSquad } from '../lib/optimizer';
 import { SquadJudgeModal, SquadEvaluation } from './SquadJudgeModal';
-import { 
-  Plus, 
-  Trash2, 
-  Sparkles, 
-  Search, 
-  X, 
-  Coins, 
-  TrendingUp, 
-  ShieldCheck, 
-  Share2, 
-  Download,
-  AlertTriangle,
-  CheckCircle2,
-  Sliders,
-  UserCheck,
-  Save,
+import {
+  Plus,
+  Trash2,
+  Sparkles,
+  Search,
+  X,
   Shield,
-  Layers,
   ArrowRight,
-  ArrowUpDown,
-  Flame,
-  Activity,
-  Edit3,
   Bot,
   RefreshCw,
-  Sparkle,
   Trophy
 } from 'lucide-react';
 
@@ -402,14 +386,14 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
     }
 
     setAiTacticalReview({
-      text: 'Slot completati con l\'ottimizzatore locale. Configura GEMINI_API_KEY nel file .env.local o su Vercel per ricevere anche la review tattica di Gemini.'
+      text: 'Rosa completata con l\'ottimizzatore. Per ricevere anche l\'analisi tattica configura GEMINI_API_KEY in .env.local.'
     });
   };
 
   // Convert to GeneratedSquad and apply
   const handleApplyToMain = () => {
     if (currentPlayers.length < 25) {
-      alert('La rosa non è ancora completa (25 giocatori necessari). Puoi usare il tasto "Autocompleta Slot Vuoti (AI)" per riempire gli slot mancanti!');
+      alert('La rosa non è ancora completa (servono 25 giocatori). Usa "Completa Rosa" per riempire gli slot mancanti.');
       return;
     }
 
@@ -501,10 +485,17 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
   }, [allPlayers, activePickerRole, selectedIds, searchQuery, filterTeam, pickerSortBy, totalBudget, participants]);
 
   const roleLabels: Record<Role, string> = {
-    P: 'Portieri (Blocco Unica Squadra)',
-    D: 'Difensori (8)',
-    C: 'Centrocampisti (8)',
-    A: 'Attaccanti (6)'
+    P: 'Portieri',
+    D: 'Difensori',
+    C: 'Centrocampisti',
+    A: 'Attaccanti'
+  };
+
+  const roleSingular: Record<Role, string> = {
+    P: 'portiere',
+    D: 'difensore',
+    C: 'centrocampista',
+    A: 'attaccante'
   };
 
   return (
@@ -514,13 +505,13 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>🛠️ Costruttore Rosa Custom (Google AI Studio)</span>
+              <span>La Mia Rosa</span>
               <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.2)', color: 'var(--accent-emerald-light)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
-                💾 Auto-salvato
+                Salvata in automatico
               </span>
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Componi la tua rosa o lascia che Google Gemini 3.5 completi tutti gli slot con la migliore combinazione
+              Scegli i tuoi giocatori; gli slot vuoti li completa l&apos;ottimizzatore, l&apos;AI commenta la rosa
             </p>
           </div>
 
@@ -530,10 +521,10 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               onClick={handleJudgeSquad}
               className="btn-secondary"
               style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px', background: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)', color: '#fbbf24' }}
-              title="Ottieni pagelle, voto globale e analisi reparto per reparto da Google Gemini AI"
+              title="Pagelle, voto e analisi reparto per reparto con l'AI"
             >
               <Trophy size={15} />
-              <span>🏆 Giudica Rosa (AI)</span>
+              <span>Giudica Rosa</span>
             </button>
 
             <button
@@ -541,17 +532,17 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               disabled={isAiLoading}
               className="btn-primary"
               style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px' }}
-              title="Completa gli slot vuoti con Google Gemini AI"
+              title="Riempie gli slot vuoti con la combinazione migliore per il budget rimasto"
             >
               {isAiLoading ? (
                 <>
                   <RefreshCw size={15} className="spin" />
-                  <span>Gemini AI in elaborazione...</span>
+                  <span>Completamento...</span>
                 </>
               ) : (
                 <>
                   <Sparkles size={15} />
-                  <span>🪄 Autocompleta con Gemini AI</span>
+                  <span>Completa Rosa</span>
                 </>
               )}
             </button>
@@ -563,7 +554,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                 style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px', background: 'linear-gradient(135deg, #10b981, #059669)' }}
               >
                 <ArrowRight size={15} />
-                <span>Visualizza su Campo / Esporta</span>
+                <span>Porta sul Campo</span>
               </button>
             )}
 
@@ -573,7 +564,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               style={{ padding: '8px 14px', fontSize: '0.85rem', gap: '6px' }}
             >
               <Trash2 size={14} />
-              <span>Svuota Rosa</span>
+              <span>Svuota</span>
             </button>
           </div>
         </div>
@@ -594,7 +585,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
                 <strong style={{ fontSize: '0.85rem', color: 'var(--accent-emerald-light)' }}>
-                  Analisi Tattica Gemini AI
+                  Analisi Tattica AI
                 </strong>
                 {aiTacticalReview.model && (
                   <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
@@ -617,46 +608,38 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
         )}
 
         {/* Live Counters */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', marginBottom: '16px' }}>
           <div className="stat-widget" style={{ padding: '12px' }}>
-            <span className="stat-widget-label">Spesa / Budget</span>
+            <span className="stat-widget-label">Spesa</span>
             <span className="stat-widget-value" style={{ color: totalSpent > totalBudget ? '#ef4444' : 'var(--accent-gold)' }}>
               {totalSpent} <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>/ {totalBudget} cr</span>
             </span>
-          </div>
-
-          <div className="stat-widget" style={{ padding: '12px' }}>
-            <span className="stat-widget-label">Crediti Rimanenti</span>
-            <span className="stat-widget-value" style={{ color: remainingBudget < 0 ? '#ef4444' : 'var(--accent-emerald-light)' }}>
-              {remainingBudget} <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>cr</span>
+            <span style={{ fontSize: '0.72rem', color: remainingBudget <= 0 ? '#ef4444' : 'var(--accent-emerald-light)' }}>
+              {remainingBudget} cr rimasti
             </span>
           </div>
 
           <div className="stat-widget" style={{ padding: '12px' }}>
-            <span className="stat-widget-label">Slot Completati</span>
+            <span className="stat-widget-label">Giocatori</span>
             <span className="stat-widget-value">
               {currentPlayers.length} <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>/ 25</span>
+            </span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              {emptySlotsCount > 0 ? `${emptySlotsCount} slot da riempire` : 'Rosa completa'}
             </span>
           </div>
 
           <div className="stat-widget" style={{ padding: '12px' }}>
             <span className="stat-widget-label">Media Cr / Slot Vuoto</span>
             <span className="stat-widget-value" style={{ color: 'var(--role-c-text)' }}>
-              {emptySlotsCount > 0 ? `${avgRemainingPerSlot} cr` : 'Completa'}
+              {emptySlotsCount > 0 ? `${avgRemainingPerSlot} cr` : '—'}
             </span>
           </div>
 
           <div className="stat-widget" style={{ padding: '12px' }}>
             <span className="stat-widget-label">FM Media Titolari</span>
             <span className="stat-widget-value" style={{ color: 'var(--accent-emerald-light)' }}>
-              {startingMetrics.fm > 0 ? startingMetrics.fm : '-'}
-            </span>
-          </div>
-
-          <div className="stat-widget" style={{ padding: '12px' }}>
-            <span className="stat-widget-label">Gol Stimati Rosa</span>
-            <span className="stat-widget-value">
-              ~{startingMetrics.goals} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>gol</span>
+              {startingMetrics.fm > 0 ? startingMetrics.fm : '—'}
             </span>
           </div>
         </div>
@@ -677,9 +660,12 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className={`role-badge ${role}`}>{role}</span>
               <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>{roleLabels[role]}</h3>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                {selectedSlots[role].filter(Boolean).length}/{selectedSlots[role].length}
+              </span>
               {role === 'P' && (
                 <span style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', background: 'rgba(245, 158, 11, 0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-                  🛡️ Tris Portieri Stessa Squadra
+                  blocco stessa squadra
                 </span>
               )}
             </div>
@@ -812,7 +798,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                   }}
                 >
                   <Plus size={15} />
-                  <span>Slot #{idx + 1} • Scegli {role}</span>
+                  <span>Aggiungi {roleSingular[role]}</span>
                 </button>
               );
             })}
@@ -828,7 +814,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className={`role-badge ${activePickerRole}`}>{activePickerRole}</span>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>
-                  Scegli {roleLabels[activePickerRole]} per Slot #{activePickerIndex + 1}
+                  Scegli un {roleSingular[activePickerRole]}
                 </h3>
               </div>
               <button onClick={() => { setActivePickerRole(null); setActivePickerIndex(null); }} className="btn-icon">
@@ -841,7 +827,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               <div style={{ marginBottom: '14px', background: 'var(--bg-card)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-gold)', marginBottom: '8px' }}>
                   <Shield size={14} />
-                  <span>Blocchi Portieri Completi per Squadra (Tris 1°, 2°, 3° Portiere):</span>
+                  <span>Blocco portieri per squadra (1°, 2° e 3°)</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '6px', maxHeight: '150px', overflowY: 'auto' }}>
                   {goalkeeperBlocks.map(block => (
@@ -913,7 +899,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                     cursor: 'pointer'
                   }}
                 >
-                  ⚡ Titolarità
+                  Titolarità
                 </button>
 
                 <button
@@ -928,7 +914,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                     cursor: 'pointer'
                   }}
                 >
-                  📈 FantaMedia
+                  FantaMedia
                 </button>
 
                 <button
@@ -943,7 +929,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                     cursor: 'pointer'
                   }}
                 >
-                  💰 1 cr
+                  Prezzo basso
                 </button>
               </div>
             </div>

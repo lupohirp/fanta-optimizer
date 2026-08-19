@@ -22,16 +22,12 @@ import { PlayerEditModal } from '../components/PlayerEditModal';
 import { CustomSquadBuilder } from '../components/CustomSquadBuilder';
 import { SquadJudgeModal, SquadEvaluation } from '../components/SquadJudgeModal';
 
-import { 
-  Sparkles, 
-  LayoutGrid, 
-  Table as TableIcon, 
-  Download, 
-  Share2, 
-  Check, 
-  Replace,
-  Pin,
-  RefreshCw,
+import {
+  LayoutGrid,
+  Table as TableIcon,
+  Download,
+  Share2,
+  Check,
   Trophy
 } from 'lucide-react';
 
@@ -301,14 +297,12 @@ export default function Home() {
       )}
 
       {/* Top Navigation */}
-      <Navbar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        onShareWhatsApp={handleShareWhatsApp}
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
         onManualSync={handleManualSync}
         isSyncing={isSyncing}
         lastSyncTime={lastSyncTime}
-        hasSquad={Boolean(squad)}
         playersCount={allPlayers.length}
       />
 
@@ -358,7 +352,7 @@ export default function Home() {
                   }}
                 >
                   <LayoutGrid size={15} />
-                  <span>Campo Titolari (11)</span>
+                  <span>Campo</span>
                 </button>
 
                 <button
@@ -377,7 +371,7 @@ export default function Home() {
                   }}
                 >
                   <TableIcon size={15} />
-                  <span>Rosa Completa (25)</span>
+                  <span>Rosa (25)</span>
                 </button>
               </div>
 
@@ -386,10 +380,10 @@ export default function Home() {
                   onClick={handleJudgeCurrentSquad}
                   className="btn-secondary"
                   style={{ padding: '8px 14px', fontSize: '0.82rem', gap: '6px', background: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)', color: '#fbbf24' }}
-                  title="Ottieni pagelle e voto da Google Gemini AI"
+                  title="Pagelle e voto della rosa con l'AI"
                 >
                   <Trophy size={14} />
-                  <span>🏆 Giudica Rosa (AI)</span>
+                  <span>Giudica Rosa</span>
                 </button>
 
                 <button
@@ -398,7 +392,7 @@ export default function Home() {
                   style={{ padding: '8px 14px', fontSize: '0.82rem', gap: '6px' }}
                 >
                   <Download size={14} />
-                  <span>Esporta CSV</span>
+                  <span>CSV</span>
                 </button>
 
                 <button
@@ -407,7 +401,7 @@ export default function Home() {
                   style={{ padding: '8px 16px', fontSize: '0.82rem', gap: '6px' }}
                 >
                   <Share2 size={14} />
-                  <span>Copia per WhatsApp</span>
+                  <span>WhatsApp</span>
                 </button>
               </div>
             </div>

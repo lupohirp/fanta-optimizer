@@ -531,6 +531,15 @@ input, select, textarea {
   font-family: var(--font-mono);
 }
 
+/* Spin animation for loading icons */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
 /* Toast / Banner */
 .notice-banner {
   background: rgba(16, 185, 129, 0.1);
