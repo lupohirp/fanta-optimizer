@@ -90,10 +90,54 @@ export function getStrategyWeights(settings: LeagueSettings): { P: number; D: nu
 }
 
 /**
- * Score complessivo di un calciatore con massima priorità alla CERTEZZA DEL VOTO (Titolarità)
+ * Fiducia nella FM proiettata per fascia di mercato (tier): il prezzo d'asta
+ * incorpora un consenso che le proiezioni individuali non hanno. Le FM dei top
+ * di mercato sono affidabili; quelle delle fasce basse vanno compresse verso la
+ * media di ruolo, altrimenti l'ottimizzatore compra sistematicamente proprio i
+ * giocatori con le stime più gonfiate del listone.
  */
-function computePlayerScore(player: Player, settings: LeagueSettings): number {
-  let score = player.expectedPoints * 10;
+const TIER_TRUST: Record<number, number> = { 1: 0.95, 2: 0.72, 3: 0.55, 4: 0.5, 5: 0.45 };
+
+/** FM media dei titolari (titolarità >= 80) per ruolo: baseline della compressione */
+function roleBaselines(players: Player[]): Record<Role, number> {
+  const res = { P: 5.3, D: 6.0, C: 6.1, A: 6.4 } as Record<Role, number>;
+  (['P', 'D', 'C', 'A'] as Role[]).forEach(role => {
+    const pool = players.filter(p => p.role === role && p.starterProbability >= 80);
+    if (pool.length >= 5) {
+      res[role] = pool.reduce((s, p) => s + p.expectedPoints, 0) / pool.length;
+    }
+  });
+  return res;
+}
+
+/** FM "bancabile": compressa verso la baseline in base al tier, con tetto per titolarità incerta */
+function reliableFM(player: Player, baseline: number): number {
+  const trust = TIER_TRUST[player.tier] ?? 0.55;
+  let fm = baseline + (player.expectedPoints - baseline) * trust;
+  if (player.starterProbability < 75) {
+    fm = Math.min(fm, baseline + 0.8); // upside non bancabile senza posto fisso
+  }
+  return fm;
+}
+
+/**
+ * Premio "stella": la FM media comprime il vantaggio reale dei top player
+ * (bonus pesanti, code lunghe di rendimento). Sopra la soglia ogni decimale
+ * extra vale progressivamente di più, così pagare il prezzo di un campione
+ * torna razionale anche per un ottimizzatore lineare nei crediti.
+ */
+const STAR_FM_FLOOR = 6.8;
+const STAR_PREMIUM = 22;
+
+/**
+ * Score complessivo di un calciatore: FM affidabile + premio stella,
+ * massima priorità alla CERTEZZA DEL VOTO (Titolarità), più l'identità
+ * della strategia scelta (ogni preset spinge profili diversi, non solo
+ * una diversa ripartizione del budget).
+ */
+function computePlayerScore(player: Player, settings: LeagueSettings, baselineFM: number): number {
+  const fm = reliableFM(player, baselineFM);
+  let score = fm * 10 + Math.pow(Math.max(0, fm - STAR_FM_FLOOR), 2) * STAR_PREMIUM;
 
   // PRIORITÀ MASSIMA: Titolarità & Certezza di voto
   score += (player.starterProbability / 100) * 35;
@@ -114,14 +158,41 @@ function computePlayerScore(player: Player, settings: LeagueSettings): number {
     score += 6;
   }
 
-  // Modificatore di difesa: premia difensori con media voto pura alta
-  if (settings.defenseModifier && player.role === 'D') {
+  // Modificatore di difesa (checkbox di lega o strategia dedicata):
+  // premia difensori con media voto pura alta
+  if ((settings.defenseModifier || settings.strategy === 'defense_modifier') && player.role === 'D') {
     score += player.expectedPoints >= 6.3 ? 12 : 4;
   }
 
   // Bonus porta inviolata per i portieri
   if (settings.cleanSheetBonus && player.role === 'P') {
     score += player.tier === 1 ? 15 : 5;
+  }
+
+  // Identità di strategia
+  switch (settings.strategy) {
+    case 'heavy_attack':
+      // "1-2 Top assoluti in attacco": i big di mercato valgono di più qui
+      if (player.role === 'A' && player.tier === 1) score += 25;
+      else if (player.role === 'A' && player.tier === 2) score += 8;
+      break;
+    case 'midfield_power':
+      // Mediana da bonus: incursori, rigoristi e big di reparto
+      if (player.role === 'C') {
+        if (player.isPenaltyTaker || player.isFreeKickTaker) score += 12;
+        if (player.tier <= 2) score += 8;
+      }
+      break;
+    case 'defense_modifier':
+      // Il preset promette il top portiere oltre ai difensori da bonus
+      if (player.role === 'P' && player.tier === 1) score += 12;
+      break;
+    case 'hype_young':
+      // Scommesse: sottovalutati dal mercato con proiezione sopra la media,
+      // meno big blasonati
+      if (player.tier >= 3 && player.expectedPoints >= baselineFM + 0.25) score += 16;
+      else if (player.tier === 1) score -= 10;
+      break;
   }
 
   return score;
@@ -136,9 +207,10 @@ const STRATEGY_ADHERENCE = 0.25;
 
 /**
  * Peso dello score dei giocatori destinati alla panchina: in campo va solo l'11
- * titolare, quindi la profondità vale meno della qualità dei titolari.
+ * titolare, quindi la profondità vale molto meno della qualità dei titolari
+ * (le riserve entrano solo per turnover e infortuni).
  */
-const BENCH_WEIGHT = 0.4;
+const BENCH_WEIGHT = 0.3;
 
 /**
  * Ampiezza della perturbazione casuale degli score quando si genera con un seed:
@@ -364,11 +436,12 @@ export function optimizeSquad(
     return v;
   };
   const rand = seed !== undefined ? mulberry32(seed) : null;
+  const baselines = roleBaselines(allPlayers);
   const scoreCache = new Map<string, number>();
   const scoreFor = (p: Player): number => {
     let v = scoreCache.get(p.id);
     if (v === undefined) {
-      v = computePlayerScore(p, settings);
+      v = computePlayerScore(p, settings, baselines[p.role]);
       if (rand) {
         v *= 1 + (rand() - 0.5) * 2 * SCORE_JITTER;
       }
