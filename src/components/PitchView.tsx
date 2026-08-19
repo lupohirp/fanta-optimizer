@@ -1,9 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Player, Role } from '../types';
+import { Player } from '../types';
 import { calculateDynamicPrice } from '../lib/optimizer';
-import { Shield, Sparkles, Crosshair } from 'lucide-react';
 
 interface PitchViewProps {
   startingXI: Player[];
@@ -65,25 +64,13 @@ export const PitchView: React.FC<PitchViewProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Field header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-            FORMAZIONE TITOLARE
-          </span>
-          <span style={{ 
-            background: 'var(--accent-emerald)', 
-            color: '#fff', 
-            fontSize: '0.75rem', 
-            fontWeight: 800, 
-            padding: '2px 8px', 
-            borderRadius: 'var(--radius-sm)' 
-          }}>
-            {formation}
-          </span>
-        </div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          Clicca su un giocatore per i dettagli scout
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+        <span style={{ fontSize: '1rem', fontWeight: 800 }}>
+          Titolari
+        </span>
+        <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+          Tocca un giocatore per la scheda
+        </span>
       </div>
 
       {/* Pitch Diagram */}
@@ -94,6 +81,24 @@ export const PitchView: React.FC<PitchViewProps> = ({
           <div className="pitch-center-circle" />
           <div className="pitch-penalty-bottom" />
         </div>
+
+        {/* Formation badge overlaid on the pitch */}
+        <span style={{
+          position: 'absolute',
+          top: '10px',
+          right: '12px',
+          zIndex: 3,
+          background: 'rgba(10, 14, 23, 0.75)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          color: '#fff',
+          fontSize: '0.78rem',
+          fontWeight: 800,
+          fontFamily: 'var(--font-mono)',
+          padding: '3px 10px',
+          borderRadius: 'var(--radius-full)'
+        }}>
+          {formation}
+        </span>
 
         {/* Attaccanti (Top) */}
         <div className="pitch-row">
@@ -118,8 +123,8 @@ export const PitchView: React.FC<PitchViewProps> = ({
 
       {/* Bench Display */}
       <div className="glass-card" style={{ padding: '16px 20px' }}>
-        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span>PANCHINA & RISERVE ({bench.length} Giocatori)</span>
+        <div style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '12px' }}>
+          Panchina <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>({bench.length})</span>
         </div>
 
         <div style={{ 

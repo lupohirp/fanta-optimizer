@@ -28,8 +28,13 @@ import {
   Download,
   Share2,
   Check,
-  Trophy
+  Trophy,
+  RefreshCw,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
+import { STRATEGIES } from '../data/players';
 
 const STORAGE_PLAYERS_KEY = 'fanta_optimizer_official_2026_27_v8';
 
@@ -42,6 +47,7 @@ export default function Home() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(`Stagione ${formatSeasonLabel(currentSeason)}`);
   const [viewMode, setViewMode] = useState<'pitch' | 'table'>('pitch');
+  const [showSettings, setShowSettings] = useState(false);
   const [selectedPlayerForModal, setSelectedPlayerForModal] = useState<Player | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   
@@ -310,27 +316,39 @@ export default function Home() {
       <main>
         {activeTab === 'generator' && (
           <div>
-            {/* Parameters & Strategy Control Panel */}
-            <ConfigPanel
-              settings={settings}
-              setSettings={setSettings}
-              onGenerate={handleGenerateSquad}
-              onSeasonChange={handleSeasonChange}
-              pinnedCount={pinnedIds.length}
-              isGenerating={isGenerating}
-            />
+            {/* Hero: la squadra prima di tutto */}
+            <div className="hero-bar">
+              <div className="hero-title">
+                <span>La Tua Rosa</span>
+                <span className="chip">
+                  {(STRATEGIES[settings.strategy]?.name || settings.strategy)
+                    .replace(/\s*\(.*\)/, '')
+                    .replace(/^[^\p{L}]+/u, '')}
+                </span>
+              </div>
 
-            {/* Budget Breakdown & High-level Metrics */}
+              <button
+                onClick={handleGenerateSquad}
+                disabled={isGenerating}
+                className="btn-primary"
+                style={{ padding: '12px 26px', fontSize: '0.95rem' }}
+              >
+                <RefreshCw size={17} className={isGenerating ? 'spin' : ''} />
+                <span>{isGenerating ? 'Un attimo...' : 'Rigenera'}</span>
+              </button>
+            </div>
+
+            {/* Scoreboard */}
             <BudgetBreakdown
               squad={squad}
               totalBudget={settings.totalBudget}
             />
 
             {/* View Switcher & Action Bar */}
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               marginBottom: '16px',
               flexWrap: 'wrap',
               gap: '10px'
@@ -427,6 +445,38 @@ export default function Home() {
                 onRequestAlternatives={handleRequestAlternatives}
               />
             )}
+
+            {/* Impostazioni: collassate, riepilogo a chip */}
+            <div style={{ marginTop: '20px' }}>
+              <button className="settings-toggle" onClick={() => setShowSettings(v => !v)}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <SlidersHorizontal size={16} style={{ color: 'var(--accent-emerald-light)', flexShrink: 0 }} />
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Impostazioni</span>
+                  <span className="chip">{settings.totalBudget} cr</span>
+                  <span className="chip">{settings.participants} squadre</span>
+                  <span className="chip">{settings.targetFormation === 'auto' ? 'Modulo auto' : settings.targetFormation}</span>
+                  {pinnedIds.length > 0 && (
+                    <span className="chip" style={{ color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.35)' }}>
+                      {pinnedIds.length} bloccati
+                    </span>
+                  )}
+                </span>
+                {showSettings ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </button>
+
+              {showSettings && (
+                <div style={{ marginTop: '12px' }}>
+                  <ConfigPanel
+                    settings={settings}
+                    setSettings={setSettings}
+                    onGenerate={handleGenerateSquad}
+                    onSeasonChange={handleSeasonChange}
+                    pinnedCount={pinnedIds.length}
+                    isGenerating={isGenerating}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         )}
 
