@@ -804,6 +804,17 @@ function selectStartingXI(
 }
 
 /**
+ * XI titolare e panchina per una rosa già costruita (es. rosa custom):
+ * stessa logica del generatore, rispetta targetFormation e modificatore difesa.
+ */
+export function buildStartingXI(
+  players: Player[],
+  settings: LeagueSettings
+): { formation: string; startingXI: Player[]; bench: Player[] } {
+  return selectStartingXI(players, settings);
+}
+
+/**
  * Trova alternative equivalenti (Piano B) per un giocatore dell'asta
  */
 export function findAlternatives(

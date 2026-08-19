@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Player, LeagueSettings, GeneratedSquad } from '../types';
 import { INITIAL_PLAYERS } from '../data/players';
-import { optimizeSquad, findAlternatives, calculateDynamicPrice } from '../lib/optimizer';
+import { optimizeSquad, findAlternatives, calculateDynamicPrice, buildStartingXI } from '../lib/optimizer';
 import { formatSquadForWhatsApp, exportSquadToCSV } from '../lib/export';
 import { syncLivePlayers, getLastSyncInfo } from '../lib/sync';
 import { getCurrentSeason, formatSeasonLabel } from '../lib/season';
@@ -146,6 +146,17 @@ export default function Home() {
     } else {
       showToast(`🟢 Listone ${formatSeasonLabel(settings.selectedSeason)} sincronizzato.`);
     }
+  };
+
+  // Cambio modulo al volo: aggiorna le impostazioni e ridispone subito
+  // l'XI della rosa corrente, senza dover rigenerare
+  const handleFormationChange = (f: LeagueSettings['targetFormation']) => {
+    const newSettings = { ...settings, targetFormation: f };
+    setSettings(newSettings);
+    setSquad(prev => {
+      const xi = buildStartingXI(prev.players, newSettings);
+      return { ...prev, formation: xi.formation, startingXI: xi.startingXI, bench: xi.bench };
+    });
   };
 
   // Generation handler
@@ -424,6 +435,41 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Modulo: selezione diretta, l'XI si ridispone subito */}
+            {viewMode === 'pitch' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginRight: '4px' }}>
+                  Modulo
+                </span>
+                {(['auto', '3-4-3', '4-3-3', '3-5-2', '4-4-2', '4-2-3-1'] as const).map(f => {
+                  const isSelected = settings.targetFormation === f;
+                  return (
+                    <button
+                      key={f}
+                      onClick={() => handleFormationChange(f)}
+                      style={{
+                        background: isSelected
+                          ? 'linear-gradient(135deg, #34d399 0%, #10b981 45%, #059669 100%)'
+                          : 'var(--bg-card-subtle)',
+                        color: isSelected ? '#fff' : 'var(--text-secondary)',
+                        border: isSelected ? '1px solid transparent' : '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-full)',
+                        padding: '6px 13px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        fontFamily: f === 'auto' ? 'inherit' : 'var(--font-mono)',
+                        cursor: 'pointer',
+                        boxShadow: isSelected ? '0 4px 12px rgba(16, 185, 129, 0.35)' : 'none',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {f === 'auto' ? 'Auto' : f}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Display Selected View (Pitch vs Full Table) */}
             {viewMode === 'pitch' ? (
               <PitchView
@@ -484,6 +530,7 @@ export default function Home() {
           <CustomSquadBuilder
             allPlayers={allPlayers}
             settings={settings}
+            setSettings={setSettings}
             totalBudget={settings.totalBudget}
             participants={settings.participants}
             onSaveToMainSquad={(customSq) => {

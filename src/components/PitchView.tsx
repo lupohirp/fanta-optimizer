@@ -36,7 +36,7 @@ export const PitchView: React.FC<PitchViewProps> = ({
         title={`${p.name} (${p.team}) - ${price}cr - FM ${p.expectedPoints.toFixed(1)}`}
       >
         <div className={`player-jersey ${p.role}`}>
-          {p.role}
+          {p.expectedPoints.toFixed(1)}
           {p.isPenaltyTaker && (
             <span style={{ 
               position: 'absolute', 
@@ -56,7 +56,7 @@ export const PitchView: React.FC<PitchViewProps> = ({
           )}
         </div>
         <div className="pitch-player-name">{p.name}</div>
-        <div className="pitch-player-stat">{price}cr • {p.expectedPoints.toFixed(1)}</div>
+        <div className="pitch-player-stat">{price} cr</div>
       </div>
     );
   };

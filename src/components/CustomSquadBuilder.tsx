@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Player, Role, LeagueSettings, GeneratedSquad } from '../types';
-import { calculateDynamicPrice, optimizeSquad } from '../lib/optimizer';
+import { calculateDynamicPrice, optimizeSquad, buildStartingXI } from '../lib/optimizer';
 import { SquadJudgeModal, SquadEvaluation } from './SquadJudgeModal';
 import {
   Plus,
@@ -22,6 +22,7 @@ const STORAGE_CUSTOM_SQUAD_KEY = 'fanta_optimizer_custom_squad_state_v3';
 interface CustomSquadBuilderProps {
   allPlayers: Player[];
   settings: LeagueSettings;
+  setSettings: React.Dispatch<React.SetStateAction<LeagueSettings>>;
   totalBudget: number;
   participants: number;
   onSaveToMainSquad: (squad: GeneratedSquad) => void;
@@ -31,6 +32,7 @@ interface CustomSquadBuilderProps {
 export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
   allPlayers,
   settings,
+  setSettings,
   totalBudget,
   participants,
   onSaveToMainSquad,
@@ -172,30 +174,20 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
       .sort((a, b) => b.starter.expectedPoints - a.starter.expectedPoints);
   }, [allPlayers, totalBudget, participants]);
 
-  // Projected FM of starting XI
+  // Projected FM of starting XI: rispetta modulo e modificatori scelti
   const startingMetrics = useMemo(() => {
     if (currentPlayers.length === 0) return { fm: 0, goals: 0, assists: 0 };
 
-    const sortedP = selectedSlots.P.filter(Boolean) as Player[];
-    const sortedD = (selectedSlots.D.filter(Boolean) as Player[]).sort((a, b) => b.expectedPoints - a.expectedPoints);
-    const sortedC = (selectedSlots.C.filter(Boolean) as Player[]).sort((a, b) => b.expectedPoints - a.expectedPoints);
-    const sortedA = (selectedSlots.A.filter(Boolean) as Player[]).sort((a, b) => b.expectedPoints - a.expectedPoints);
-
-    const topP = sortedP.slice(0, 1);
-    const topD = sortedD.slice(0, 3);
-    const topC = sortedC.slice(0, 4);
-    const topA = sortedA.slice(0, 3);
-
-    const starters = [...topP, ...topD, ...topC, ...topA];
-    const fm = starters.length > 0 
-      ? parseFloat((starters.reduce((s, p) => s + p.expectedPoints, 0) / starters.length).toFixed(1))
+    const { startingXI } = buildStartingXI(currentPlayers, settings);
+    const fm = startingXI.length > 0
+      ? parseFloat((startingXI.reduce((s, p) => s + p.expectedPoints, 0) / startingXI.length).toFixed(1))
       : 0;
 
     const goals = currentPlayers.reduce((s, p) => s + p.expectedGoals, 0);
     const assists = currentPlayers.reduce((s, p) => s + p.expectedAssists, 0);
 
     return { fm, goals, assists };
-  }, [currentPlayers, selectedSlots]);
+  }, [currentPlayers, settings]);
 
   // Judge Squad Handler
   const handleJudgeSquad = async () => {
@@ -397,20 +389,13 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
       return;
     }
 
-    const sortedP = selectedSlots.P.filter(Boolean) as Player[];
-    const sortedD = (selectedSlots.D.filter(Boolean) as Player[]).sort((a, b) => b.expectedPoints - a.expectedPoints);
-    const sortedC = (selectedSlots.C.filter(Boolean) as Player[]).sort((a, b) => b.expectedPoints - a.expectedPoints);
-    const sortedA = (selectedSlots.A.filter(Boolean) as Player[]).sort((a, b) => b.expectedPoints - a.expectedPoints);
-
-    const startingXI = [...sortedP.slice(0, 1), ...sortedD.slice(0, 3), ...sortedC.slice(0, 4), ...sortedA.slice(0, 3)];
-    const startingIds = new Set(startingXI.map(p => p.id));
-    const bench = currentPlayers.filter(p => !startingIds.has(p.id));
+    const { formation, startingXI, bench } = buildStartingXI(currentPlayers, settings);
 
     const customSquad: GeneratedSquad = {
       id: `custom-squad-${Date.now()}`,
       name: `Rosa Custom Personale (${totalBudget}cr)`,
       season: settings.selectedSeason || '2026-27',
-      strategy: 'balanced',
+      strategy: settings.strategy,
       createdAt: Date.now(),
       players: currentPlayers,
       pinnedPlayerIds: currentPlayers.map(p => p.id),
@@ -429,7 +414,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
         C: totalSpent > 0 ? Math.round((roleSpent.C / totalSpent) * 100) : 0,
         A: totalSpent > 0 ? Math.round((roleSpent.A / totalSpent) * 100) : 0,
       },
-      formation: '3-4-3',
+      formation,
       startingXI,
       bench
     };
@@ -567,6 +552,61 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               <span>Svuota</span>
             </button>
           </div>
+        </div>
+
+        {/* Modulo e modificatori di lega: valgono per XI, completamento e giudizio AI */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginRight: '4px' }}>
+              Modulo
+            </span>
+            {(['auto', '3-4-3', '4-3-3', '3-5-2', '4-4-2', '4-2-3-1'] as const).map(f => {
+              const isSelected = settings.targetFormation === f;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setSettings(prev => ({ ...prev, targetFormation: f }))}
+                  style={{
+                    background: isSelected
+                      ? 'linear-gradient(135deg, #34d399 0%, #10b981 45%, #059669 100%)'
+                      : 'var(--bg-card-subtle)',
+                    color: isSelected ? '#fff' : 'var(--text-secondary)',
+                    border: isSelected ? '1px solid transparent' : '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-full)',
+                    padding: '5px 12px',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    fontFamily: f === 'auto' ? 'inherit' : 'var(--font-mono)',
+                    cursor: 'pointer',
+                    boxShadow: isSelected ? '0 4px 12px rgba(16, 185, 129, 0.35)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {f === 'auto' ? 'Auto' : f}
+                </button>
+              );
+            })}
+          </div>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            <input
+              type="checkbox"
+              checked={settings.defenseModifier}
+              onChange={(e) => setSettings(prev => ({ ...prev, defenseModifier: e.target.checked }))}
+              style={{ accentColor: 'var(--accent-emerald)' }}
+            />
+            <span>Mod. Difesa</span>
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            <input
+              type="checkbox"
+              checked={settings.cleanSheetBonus}
+              onChange={(e) => setSettings(prev => ({ ...prev, cleanSheetBonus: e.target.checked }))}
+              style={{ accentColor: 'var(--accent-emerald)' }}
+            />
+            <span>Porta Inviolata</span>
+          </label>
         </div>
 
         {/* Gemini AI Tactical Review Alert */}
