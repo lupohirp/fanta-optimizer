@@ -3,16 +3,15 @@
 import React from 'react';
 import {
   Trophy,
-  Sparkles,
+  Shirt,
   Gavel,
   Users,
   GitCompare,
   BookOpen,
-  RefreshCw,
-  Hammer
+  RefreshCw
 } from 'lucide-react';
 
-export type TabType = 'generator' | 'custom_builder' | 'live_auction' | 'database' | 'comparator' | 'guide';
+export type TabType = 'generator' | 'live_auction' | 'database' | 'comparator' | 'guide';
 
 interface NavbarProps {
   activeTab: TabType;
@@ -24,8 +23,7 @@ interface NavbarProps {
 }
 
 const TABS: { id: TabType; label: string; Icon: React.ElementType }[] = [
-  { id: 'generator', label: 'Genera', Icon: Sparkles },
-  { id: 'custom_builder', label: 'La Mia Rosa', Icon: Hammer },
+  { id: 'generator', label: 'La Mia Rosa', Icon: Shirt },
   { id: 'live_auction', label: 'Asta Live', Icon: Gavel },
   { id: 'database', label: 'Listone', Icon: Users },
   { id: 'comparator', label: 'Confronta', Icon: GitCompare },

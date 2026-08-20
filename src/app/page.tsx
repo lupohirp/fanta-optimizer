@@ -32,7 +32,9 @@ import {
   RefreshCw,
   SlidersHorizontal,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Sparkles,
+  Hammer
 } from 'lucide-react';
 import { STRATEGIES } from '../data/players';
 
@@ -47,6 +49,7 @@ export default function Home() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(`Stagione ${formatSeasonLabel(currentSeason)}`);
   const [viewMode, setViewMode] = useState<'pitch' | 'table'>('pitch');
+  const [squadMode, setSquadMode] = useState<'auto' | 'custom'>('auto');
   const [showSettings, setShowSettings] = useState(false);
   const [selectedPlayerForModal, setSelectedPlayerForModal] = useState<Player | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -327,6 +330,71 @@ export default function Home() {
       <main>
         {activeTab === 'generator' && (
           <div>
+            {/* Due modi di lavorare sulla stessa rosa: automatica o costruita a mano */}
+            <div style={{
+              display: 'flex',
+              gap: '4px',
+              background: 'var(--bg-card)',
+              padding: '4px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-subtle)',
+              width: 'fit-content',
+              marginBottom: '18px'
+            }}>
+              <button
+                onClick={() => setSquadMode('auto')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 16px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  background: squadMode === 'auto' ? 'var(--accent-emerald)' : 'transparent',
+                  color: squadMode === 'auto' ? '#fff' : 'var(--text-secondary)',
+                  cursor: 'pointer'
+                }}
+              >
+                <Sparkles size={15} />
+                <span>Genera</span>
+              </button>
+              <button
+                onClick={() => setSquadMode('custom')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 16px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  background: squadMode === 'custom' ? 'var(--accent-emerald)' : 'transparent',
+                  color: squadMode === 'custom' ? '#fff' : 'var(--text-secondary)',
+                  cursor: 'pointer'
+                }}
+              >
+                <Hammer size={15} />
+                <span>Costruttore</span>
+              </button>
+            </div>
+
+            {squadMode === 'custom' ? (
+              <CustomSquadBuilder
+                allPlayers={allPlayers}
+                settings={settings}
+                setSettings={setSettings}
+                totalBudget={settings.totalBudget}
+                participants={settings.participants}
+                onSaveToMainSquad={(customSq) => {
+                  setSquad(customSq);
+                  setSquadMode('auto');
+                  showToast('Rosa custom applicata');
+                }}
+                onSelectPlayerModal={(p) => setSelectedPlayerForModal(p)}
+              />
+            ) : (
+            <div>
             {/* Hero: la squadra prima di tutto */}
             <div className="hero-bar">
               <div className="hero-title">
@@ -519,23 +587,9 @@ export default function Home() {
                 </div>
               )}
             </div>
+            </div>
+            )}
           </div>
-        )}
-
-        {activeTab === 'custom_builder' && (
-          <CustomSquadBuilder
-            allPlayers={allPlayers}
-            settings={settings}
-            setSettings={setSettings}
-            totalBudget={settings.totalBudget}
-            participants={settings.participants}
-            onSaveToMainSquad={(customSq) => {
-              setSquad(customSq);
-              setActiveTab('generator');
-              showToast('Rosa custom applicata');
-            }}
-            onSelectPlayerModal={(p) => setSelectedPlayerForModal(p)}
-          />
         )}
 
         {activeTab === 'live_auction' && (
