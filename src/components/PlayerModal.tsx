@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Player } from '../types';
 import { calculateDynamicPrice, getPlayerAuctionRange, MarketValuation } from '../lib/optimizer';
-import { marketAnchorLabels } from '../lib/market';
+import { marketGridFor } from '../lib/market';
 import { 
   Pin, 
   PinOff, 
@@ -62,6 +62,16 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
   }, [player, totalBudget, participants]);
 
   const auctionRange = getPlayerAuctionRange(player, totalBudget, participants);
+
+  // Prezzo in tutti e quattro i formati di lega rilevati dal mercato
+  const marketGrid = player.market ? marketGridFor(player.market) : null;
+  // A quale formato standard corrisponde la lega dell'utente (7-8 e 9-11 squadre,
+  // 300-400 e 440-560 crediti sono le fasce su cui il mercato aggrega i dati)
+  const matchedParticipants =
+    participants >= 7 && participants <= 8 ? 8 : participants >= 9 && participants <= 11 ? 10 : null;
+  const matchedBudget =
+    totalBudget >= 300 && totalBudget <= 400 ? 350 : totalBudget >= 440 && totalBudget <= 560 ? 500 : null;
+  const isStandardFormat = matchedParticipants !== null && matchedBudget !== null;
   const history = player.historicalStats && player.historicalStats.length > 0 ? player.historicalStats[0] : null;
 
   const handleSaveCustomPrice = () => {
@@ -314,25 +324,58 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
             </div>
           )}
 
-          {/* Prezzi osservati nei vari formati di lega + quanto è conteso */}
+          {/* Quanto costa in ogni formato di lega + quanto è conteso */}
           {player.market && (
-            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {marketAnchorLabels(player.market).length > 0 && (
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {marketAnchorLabels(player.market).map(a => (
-                    <span key={a.label} style={{
-                      fontSize: '0.7rem',
-                      color: 'var(--text-secondary)',
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '3px 7px',
-                      fontFamily: 'var(--font-mono)'
-                    }}>
-                      {a.label}: {Math.round(a.value)} cr
-                    </span>
-                  ))}
-                </div>
+            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {marketGrid && (
+                <>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    Quanto costa negli altri formati di lega
+                  </div>
+                  <div className="market-format-grid">
+                    {marketGrid.map(cell => {
+                      const isYours = cell.participants === matchedParticipants && cell.budget === matchedBudget;
+                      return (
+                        <div
+                          key={cell.label}
+                          title={cell.observed
+                            ? 'Prezzo medio rilevato nelle aste di questo formato'
+                            : 'Previsione ricavata dai formati con dati rilevati'}
+                          style={{
+                            background: isYours ? 'rgba(16, 185, 129, 0.10)' : 'var(--bg-card)',
+                            border: '1px solid ' + (isYours ? 'var(--accent-emerald)' : 'var(--border-subtle)'),
+                            borderRadius: 'var(--radius-sm)',
+                            padding: '7px 6px',
+                            textAlign: 'center'
+                          }}
+                        >
+                          <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                            {cell.label}
+                          </div>
+                          <div style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 800,
+                            fontSize: '0.92rem',
+                            color: isYours ? 'var(--accent-emerald-light)' : 'var(--text-primary)'
+                          }}>
+                            {cell.price}
+                          </div>
+                          <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>
+                            {cell.observed ? 'rilevato' : 'previsto'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {!isStandardFormat && (
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                      La tua lega ({participants} squadre · {totalBudget} cr):{' '}
+                      <strong style={{ color: 'var(--accent-emerald-light)', fontFamily: 'var(--font-mono)' }}>
+                        {auctionRange.avg} cr
+                      </strong>
+                    </div>
+                  )}
+                </>
               )}
 
               <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '0.72rem', color: 'var(--text-muted)' }}>

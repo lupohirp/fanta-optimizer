@@ -676,3 +676,16 @@ input, select, textarea {
   gap: 12px;
   font-size: 0.88rem;
 }
+
+/* Prezzi d'asta per formato di lega: 4 in riga, 2x2 sul mobile */
+.market-format-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+@media (max-width: 520px) {
+  .market-format-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

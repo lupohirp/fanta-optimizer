@@ -187,10 +187,41 @@ export function marketRangeFor(
   };
 }
 
-/** Etichetta leggibile del formato lega, per mostrare la fonte del prezzo */
-export function marketAnchorLabels(quote: MarketQuote): { label: string; value: number }[] {
-  return GRID.filter(c => typeof quote[c.key] === 'number' && (quote[c.key] as number) > 0).map(c => ({
-    label: `${c.participants} sq. / ${c.budget}`,
-    value: quote[c.key] as number
-  }));
+export interface MarketGridEntry {
+  participants: 8 | 10;
+  budget: 350 | 500;
+  label: string;
+  price: number;
+  /** true se il prezzo è stato rilevato in aste vere di quel formato, false se dedotto */
+  observed: boolean;
+}
+
+/**
+ * Prezzo per tutti e quattro i formati di lega: rilevato dove le aste ci sono
+ * state, dedotto dagli altri formati dove mancano. Serve a mostrare il quadro
+ * completo invece dei soli formati con dati.
+ */
+export function marketGridFor(quote: MarketQuote): MarketGridEntry[] | null {
+  const grid = buildShareGrid(quote);
+  if (!grid) return null;
+
+  const shares: Record<string, number> = {
+    p8b350: grid.s8b350,
+    p10b350: grid.s10b350,
+    p8b500: grid.s8b500,
+    p10b500: grid.s10b500
+  };
+
+  return GRID.map(cell => {
+    const raw = quote[cell.key];
+    const observed = typeof raw === 'number' && raw > 0;
+    const share = shares[cell.key];
+    return {
+      participants: cell.participants,
+      budget: cell.budget,
+      label: `${cell.participants} sq. / ${cell.budget}`,
+      price: Math.max(1, Math.round(observed ? (raw as number) : share * cell.budget)),
+      observed
+    };
+  });
 }
