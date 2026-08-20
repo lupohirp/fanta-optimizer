@@ -4,7 +4,7 @@ import officialPlayersJson from './official_2026_27_players.json';
 export const STRATEGIES: Record<string, StrategyInfo> = {
   balanced: {
     id: 'balanced',
-    name: '🎯 Bilanciata (Moneyball)',
+    name: 'Bilanciata (Moneyball)',
     shortDesc: 'Massimo rendimento per ogni singolo credito',
     description: 'Distribuzione equilibrata senza follie su singoli giocatori. Rosa profonda con titolari costanti in ogni reparto.',
     icon: 'Target',
@@ -13,7 +13,7 @@ export const STRATEGIES: Record<string, StrategyInfo> = {
   },
   heavy_attack: {
     id: 'heavy_attack',
-    name: '⚔️ Attacco Pesante (Top Bomber)',
+    name: 'Attacco Pesante (Top Bomber)',
     shortDesc: '1-2 Top assoluti in attacco + Titolari low-cost',
     description: 'Investe circa il 50-55% del budget nel reparto offensivo per assicurarsi i capocannonieri del campionato. Difesa e porta low cost.',
     icon: 'Sword',
@@ -22,7 +22,7 @@ export const STRATEGIES: Record<string, StrategyInfo> = {
   },
   defense_modifier: {
     id: 'defense_modifier',
-    name: '🛡️ Modificatore Difesa',
+    name: 'Modificatore Difesa',
     shortDesc: 'Top Portiere + 3-4 Difensori da bonus/6.5',
     description: 'Pensata per leghe con il bonus modificatore. Punta su difensori con media voto alta e portiere di primissima fascia con tanti clean sheet.',
     icon: 'Shield',
@@ -31,7 +31,7 @@ export const STRATEGIES: Record<string, StrategyInfo> = {
   },
   midfield_power: {
     id: 'midfield_power',
-    name: '⚡ Centrocampo da Bonus',
+    name: 'Centrocampo da Bonus',
     shortDesc: 'Incursori e rigoristi in mediana + Attacco corale',
     description: 'Punta su centrocampisti che giocano vicini alla porta avversaria (rigoristi/trequartisti) e tridenti offensivi composti da 2° e 3° slot.',
     icon: 'Zap',
@@ -40,7 +40,7 @@ export const STRATEGIES: Record<string, StrategyInfo> = {
   },
   hype_young: {
     id: 'hype_young',
-    name: '🎲 Scommesse & Talenti',
+    name: 'Scommesse & Talenti',
     shortDesc: 'Titolari economici + giovani ad alto potenziale',
     description: 'Punta su nuovi acquisti, giovani talenti e giocatori sottovalutati per creare una rosa a costo contenuto ma con potenziale esplosivo.',
     icon: 'Sparkles',

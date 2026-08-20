@@ -728,7 +728,7 @@ export function optimizeSquad(
 
   return {
     id: `squad-${Date.now()}`,
-    name: `Rosa ${strategyObj.name.split(' ')[1] || 'Ottimizzata'} (${totalBudget}cr)`,
+    name: `Rosa ${strategyObj.name.replace(/\s*\(.*\)/, '') || 'Ottimizzata'} (${totalBudget}cr)`,
     season: settings.selectedSeason || '2026-27',
     strategy: settings.strategy,
     createdAt: Date.now(),

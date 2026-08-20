@@ -217,7 +217,7 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>⚡ Assistente Asta Live (Tempo Reale)</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Assistente Asta Live</h2>
               <span style={{ fontSize: '0.72rem', background: 'rgba(245, 158, 11, 0.2)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
                 Live Tracker
               </span>
@@ -243,7 +243,7 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
                   border: 'none'
                 }}
               >
-                🛠️ Rosa Custom Personale
+                Rosa Custom
               </button>
               <button
                 onClick={() => handleSwitchSource('optimized')}
@@ -258,7 +258,7 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
                   border: 'none'
                 }}
               >
-                ⚡ Rosa Ottimizzata AI
+                Rosa Generata
               </button>
             </div>
 
@@ -371,10 +371,10 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
                       </span>
                       {p.isCustomPrice && (
                         <span style={{ fontSize: '0.65rem', background: 'rgba(245, 158, 11, 0.2)', color: 'var(--accent-gold)', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>
-                          ✏️ Custom
+                          Prezzo custom
                         </span>
                       )}
-                      {p.isPenaltyTaker && <span title="Rigorista">🎯</span>}
+                      {p.isPenaltyTaker && <span title="Rigorista" style={{ color: '#f87171', fontWeight: 800, fontSize: '0.7rem' }}>R</span>}
                     </div>
                     <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span>Target: <strong style={{ color: 'var(--accent-gold)' }}>{item.targetBudget} cr</strong></span>
@@ -462,7 +462,7 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
                   }}
                 >
                   <CheckCircle2 size={14} />
-                  <span>{isBought ? 'Preso! ✓' : 'Segna Preso'}</span>
+                  <span>{isBought ? 'Preso' : 'Segna Preso'}</span>
                 </button>
 
                 <button
@@ -483,7 +483,7 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
                   title="Segna come perso/andato ad altro fanta-allenatore"
                 >
                   <XCircle size={14} />
-                  <span>{isSkipped ? 'Perso ✗' : 'Perso'}</span>
+                  <span>{isSkipped ? 'Perso' : 'Perso'}</span>
                 </button>
               </div>
             </div>
@@ -570,7 +570,7 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
                           {alt.name} <span style={{ color: 'var(--text-secondary)', fontWeight: 500, fontSize: '0.8rem' }}>({alt.team})</span>
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          FM attesa: <strong style={{ color: 'var(--accent-emerald-light)' }}>{alt.expectedPoints.toFixed(1)}</strong> • Titolarità: {alt.starterProbability}% {alt.isPenaltyTaker && '• 🎯 Rigori'}
+                          FM attesa: <strong style={{ color: 'var(--accent-emerald-light)' }}>{alt.expectedPoints.toFixed(1)}</strong> • Titolarità: {alt.starterProbability}% {alt.isPenaltyTaker && '· Rigorista'}
                         </div>
                       </div>
 

@@ -69,7 +69,7 @@ export const SquadJudgeModal: React.FC<SquadJudgeModalProps> = ({
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
-      alert('📋 Pagella copiata negli appunti! Puoi incollarla su WhatsApp.');
+      alert('Pagella copiata negli appunti, pronta per WhatsApp.');
     }
   };
 
@@ -80,11 +80,11 @@ export const SquadJudgeModal: React.FC<SquadJudgeModalProps> = ({
     return '#f87171';
   };
 
-  const roleLabels: Record<Role, { name: string; icon: string }> = {
-    P: { name: 'Porta', icon: '🧤' },
-    D: { name: 'Difesa', icon: '🛡️' },
-    C: { name: 'Centrocampo', icon: '⚙️' },
-    A: { name: 'Attacco', icon: '⚽' }
+  const roleLabels: Record<Role, { name: string; role: Role }> = {
+    P: { name: 'Porta', role: 'P' },
+    D: { name: 'Difesa', role: 'D' },
+    C: { name: 'Centrocampo', role: 'C' },
+    A: { name: 'Attacco', role: 'A' }
   };
 
   return (
@@ -124,7 +124,7 @@ export const SquadJudgeModal: React.FC<SquadJudgeModalProps> = ({
             <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '3px solid var(--border-subtle)', borderTopColor: 'var(--accent-emerald)', animation: 'spin 0.8s linear infinite' }} />
             <div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '4px' }}>
-                🧠 Analisi tattica in corso con Google Gemini...
+                Analisi tattica in corso...
               </h3>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 Stiamo esaminando bonus attesi, solidità difensiva, rigoristi e gerarchie d'asta
@@ -170,7 +170,7 @@ export const SquadJudgeModal: React.FC<SquadJudgeModalProps> = ({
                   Obiettivo di Stagione Stimato:
                 </div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-emerald-light)' }}>
-                  🎯 {evaluation.projectedFinish}
+                  {evaluation.projectedFinish}
                 </div>
               </div>
             </div>
@@ -202,7 +202,7 @@ export const SquadJudgeModal: React.FC<SquadJudgeModalProps> = ({
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '1.1rem' }}>{label.icon}</span>
+                          <span className={`role-badge ${label.role}`}>{label.role}</span>
                           <strong style={{ fontSize: '0.95rem' }}>{label.name}</strong>
                         </div>
                         <span style={{ fontSize: '1.15rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: gradeColor }}>
@@ -278,7 +278,7 @@ export const SquadJudgeModal: React.FC<SquadJudgeModalProps> = ({
                 style={{ padding: '9px 16px', fontSize: '0.85rem', gap: '6px' }}
               >
                 <Share2 size={15} />
-                <span>Copia Pagella per WhatsApp 📋</span>
+                <span>Copia pagella per WhatsApp</span>
               </button>
 
               <button

@@ -50,11 +50,11 @@ export const StrategyGuide: React.FC = () => {
       icon: <AlertTriangle size={20} style={{ color: '#f87171' }} />,
       title: '4. I 5 Errori Più Comuni all\'Asta',
       content: `
-        ❌ **1. Fissarsi su un solo giocatore:** Se il prezzo del tuo pupillo supera del 30% la stima, lascialo andare e usa il "Piano B".
-        ❌ **2. Svuotare il budget sui primi chiamati:** Conserva sempre crediti per la seconda metà dell'asta, quando i rivali non possono più rilanciare.
-        ❌ **3. Comprare troppi giocatori della stessa squadra:** Rischi la disfatta nelle giornate no o nei turni contro le big.
-        ❌ **4. Sottovalutare i panchinari a 1 credito:** I tappabuchi devono essere titolari certi al 90% (anche se prendono 5.5 o 6), per non giocare mai in 10.
-        ❌ **5. Non studiare gli incroci di calendario dei portieri:** Controlla sempre che non giochino entrambi in trasferta contro Inter, Juve o Napoli.
+        **1. Fissarsi su un solo giocatore:** Se il prezzo del tuo pupillo supera del 30% la stima, lascialo andare e usa il "Piano B".
+        **2. Svuotare il budget sui primi chiamati:** Conserva sempre crediti per la seconda metà dell'asta, quando i rivali non possono più rilanciare.
+        **3. Comprare troppi giocatori della stessa squadra:** Rischi la disfatta nelle giornate no o nei turni contro le big.
+        **4. Sottovalutare i panchinari a 1 credito:** I tappabuchi devono essere titolari certi al 90% (anche se prendono 5.5 o 6), per non giocare mai in 10.
+        **5. Non studiare gli incroci di calendario dei portieri:** Controlla sempre che non giochino entrambi in trasferta contro Inter, Juve o Napoli.
       `
     }
   ];

@@ -158,12 +158,12 @@ export const SquadTable: React.FC<SquadTableProps> = ({
                           <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
                             {p.isPenaltyTaker && (
                               <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }} title="Rigorista principale o di scorta">
-                                🎯 Rigori
+                                Rigorista
                               </span>
                             )}
                             {p.isFreeKickTaker && (
                               <span style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }} title="Tiratore piazzati / corner">
-                                📐 Piazzati
+                                Piazzati
                               </span>
                             )}
                             <span style={{ background: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px' }}>

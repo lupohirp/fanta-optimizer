@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
     const fallbackEvaluation = {
       overallRating: overallScore,
-      titleBadge: overallScore >= 8.5 ? '🏆 Candidata al Titolo' : overallScore >= 7.8 ? '⭐ Zona Champions' : overallScore >= 7.0 ? '🎯 Squadra da Podio' : '⚡ Outsider / Da Perfezionare',
+      titleBadge: overallScore >= 8.5 ? 'Candidata al Titolo' : overallScore >= 7.8 ? 'Zona Champions' : overallScore >= 7.0 ? 'Squadra da Podio' : 'Outsider / Da Perfezionare',
       projectedFinish: overallScore >= 8.5 ? '1° - 2° Posto' : overallScore >= 7.8 ? '2° - 4° Posto' : overallScore >= 7.0 ? '4° - 6° Posto' : 'Metà Classifica',
       departmentGrades: {
         P: { grade: pGrade.grade, review: `Blocco portieri (${pPlayers.map(p => p.name).join(', ') || 'Nessuno'}) con affidabilità e titolarità complessiva solida.` },
@@ -106,7 +106,7 @@ Valuta:
 Rispondi ESCLUSIVAMENTE con un JSON valido con questa struttura:
 {
   "overallRating": 8.5,
-  "titleBadge": "🏆 Candidata allo Scudetto",
+  "titleBadge": "Candidata allo Scudetto",
   "projectedFinish": "1° - 2° Posto",
   "departmentGrades": {
     "P": { "grade": 8.0, "review": "Spiegazione sintetica del reparto portieri" },

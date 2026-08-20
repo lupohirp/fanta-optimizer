@@ -15,7 +15,7 @@ import { PitchView } from '../components/PitchView';
 import { SquadTable } from '../components/SquadTable';
 import { LiveAuctionAssistant } from '../components/LiveAuctionAssistant';
 import { PlayerDatabase } from '../components/PlayerDatabase';
-import { SquadComparator } from '../components/SquadComparator';
+import { SquadComparator, SavedSquad } from '../components/SquadComparator';
 import { StrategyGuide } from '../components/StrategyGuide';
 import { PlayerModal } from '../components/PlayerModal';
 import { PlayerEditModal } from '../components/PlayerEditModal';
@@ -34,11 +34,13 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
-  Hammer
+  Hammer,
+  Bookmark
 } from 'lucide-react';
 import { STRATEGIES } from '../data/players';
 
 const STORAGE_PLAYERS_KEY = 'fanta_optimizer_official_2026_27_v8';
+const STORAGE_SAVED_SQUADS_KEY = 'fanta_optimizer_saved_squads_v1';
 
 export default function Home() {
   const currentSeason = getCurrentSeason();
@@ -51,6 +53,17 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<'pitch' | 'table'>('pitch');
   const [squadMode, setSquadMode] = useState<'auto' | 'custom'>('auto');
   const [showSettings, setShowSettings] = useState(false);
+
+  // Rose salvate per il confronto (persistite in localStorage)
+  const [savedSquads, setSavedSquads] = useState<SavedSquad[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem(STORAGE_SAVED_SQUADS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
   const [selectedPlayerForModal, setSelectedPlayerForModal] = useState<Player | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   
@@ -160,6 +173,34 @@ export default function Home() {
       const xi = buildStartingXI(prev.players, newSettings);
       return { ...prev, formation: xi.formation, startingXI: xi.startingXI, bench: xi.bench };
     });
+  };
+
+  // Salva la rosa corrente per il confronto
+  const handleSaveCurrentSquad = () => {
+    if (!squad || squad.players.length === 0) return;
+    if (savedSquads.some(s => s.id === squad.id)) {
+      showToast('Questa rosa è già salvata');
+      return;
+    }
+    const entry: SavedSquad = { ...squad, participants: settings.participants };
+    const next = [entry, ...savedSquads].slice(0, 20);
+    setSavedSquads(next);
+    try {
+      localStorage.setItem(STORAGE_SAVED_SQUADS_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.error(e);
+    }
+    showToast('Rosa salvata: la trovi nel tab Confronta');
+  };
+
+  const handleDeleteSavedSquad = (id: string) => {
+    const next = savedSquads.filter(s => s.id !== id);
+    setSavedSquads(next);
+    try {
+      localStorage.setItem(STORAGE_SAVED_SQUADS_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   // Generation handler
@@ -406,15 +447,27 @@ export default function Home() {
                 </span>
               </div>
 
-              <button
-                onClick={handleGenerateSquad}
-                disabled={isGenerating}
-                className="btn-primary"
-                style={{ padding: '12px 26px', fontSize: '0.95rem' }}
-              >
-                <RefreshCw size={17} className={isGenerating ? 'spin' : ''} />
-                <span>{isGenerating ? 'Un attimo...' : 'Rigenera'}</span>
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={handleSaveCurrentSquad}
+                  className="btn-secondary"
+                  style={{ padding: '10px 16px', fontSize: '0.88rem', gap: '6px' }}
+                  title="Salva questa rosa per confrontarla con altre"
+                >
+                  <Bookmark size={15} />
+                  <span>Salva</span>
+                </button>
+
+                <button
+                  onClick={handleGenerateSquad}
+                  disabled={isGenerating}
+                  className="btn-primary"
+                  style={{ padding: '12px 26px', fontSize: '0.95rem' }}
+                >
+                  <RefreshCw size={17} className={isGenerating ? 'spin' : ''} />
+                  <span>{isGenerating ? 'Un attimo...' : 'Rigenera'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Scoreboard */}
@@ -624,8 +677,8 @@ export default function Home() {
 
         {activeTab === 'comparator' && (
           <SquadComparator
-            allPlayers={allPlayers}
-            settings={settings}
+            savedSquads={savedSquads}
+            onDeleteSquad={handleDeleteSavedSquad}
             onSelectPlayer={(p) => setSelectedPlayerForModal(p)}
           />
         )}

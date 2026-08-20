@@ -318,7 +318,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                 onChange={(e) => setIsPenaltyTaker(e.target.checked)}
                 style={{ accentColor: 'var(--accent-emerald)' }}
               />
-              <span>🎯 Rigorista</span>
+              <span>Rigorista</span>
             </label>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.82rem' }}>
@@ -328,7 +328,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                 onChange={(e) => setIsFreeKickTaker(e.target.checked)}
                 style={{ accentColor: 'var(--accent-emerald)' }}
               />
-              <span>📐 Calci Piazzati</span>
+              <span>Calci piazzati</span>
             </label>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', fontSize: '0.82rem' }}>

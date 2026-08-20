@@ -137,7 +137,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
                 <span className={`role-badge ${player.role}`}>{player.role}</span>
                 {player.isCustomPrice && (
                   <span style={{ fontSize: '0.7rem', background: 'rgba(245, 158, 11, 0.2)', color: 'var(--accent-gold)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                    ✏️ Prezzo Custom
+                    Prezzo custom
                   </span>
                 )}
               </div>
@@ -317,16 +317,16 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
             {player.isPenaltyTaker && (
               <span style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#f87171', fontSize: '0.75rem', padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
-                🎯 Rigorista
+                Rigorista
               </span>
             )}
             {player.isFreeKickTaker && (
               <span style={{ background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.4)', color: '#60a5fa', fontSize: '0.75rem', padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
-                📐 Tiratore Piazzati
+                Tiratore piazzati
               </span>
             )}
             <span style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: '0.75rem', padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>
-              ⚽ ~{player.expectedGoals} Gol
+              ~{player.expectedGoals} gol
             </span>
             <span style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: '0.75rem', padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>
               🅰️ ~{player.expectedAssists} Assist

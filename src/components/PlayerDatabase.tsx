@@ -229,7 +229,7 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
               onChange={(e) => setFilters(prev => ({ ...prev, onlyStarters: e.target.checked }))}
               style={{ accentColor: 'var(--accent-emerald)' }}
             />
-            <span style={{ fontWeight: 700, color: 'var(--accent-emerald-light)' }}>⚡ Solo Titolari Fissi (≥80%)</span>
+            <span style={{ fontWeight: 700, color: 'var(--accent-emerald-light)' }}>Solo titolari fissi (≥80%)</span>
           </label>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.82rem' }}>
@@ -239,7 +239,7 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
               onChange={(e) => setFilters(prev => ({ ...prev, onlyPenaltyTakers: e.target.checked }))}
               style={{ accentColor: 'var(--accent-emerald)' }}
             />
-            <span>🎯 Solo Rigoristi</span>
+            <span>Solo rigoristi</span>
           </label>
 
           <div style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -264,7 +264,7 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
                 <th style={{ padding: '12px 14px' }}>Squadra</th>
                 <th style={{ padding: '12px 14px', textAlign: 'center', cursor: 'pointer' }} onClick={() => handleSortChange('starter')}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
-                    <span>⚡ Titolarità</span>
+                    <span>Titolarità</span>
                     <ArrowUpDown size={12} />
                   </div>
                 </th>
@@ -380,12 +380,12 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
                       <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                         {p.isPenaltyTaker && (
                           <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                            🎯 Rigori
+                            Rigorista
                           </span>
                         )}
                         {p.isFreeKickTaker && (
                           <span style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                            📐 Piazzati
+                            Piazzati
                           </span>
                         )}
                       </div>
