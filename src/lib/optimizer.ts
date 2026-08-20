@@ -5,9 +5,15 @@ import {
   GeneratedSquad
 } from '../types';
 import { STRATEGIES } from '../data/players';
+import { marketPriceFor, marketRangeFor } from './market';
 
 /**
- * Calcola il prezzo d'asta stimato scalato sul budget dell'utente e sui partecipanti
+ * Calcola il prezzo d'asta atteso per la lega dell'utente.
+ *
+ * Ordine di priorità:
+ *  1. prezzo impostato a mano dall'utente;
+ *  2. prezzo medio realmente pagato nelle aste, interpolato sul formato di lega;
+ *  3. stima derivata dalla quotazione ufficiale (fallback storico).
  */
 export function calculateDynamicPrice(
   player: Player,
@@ -26,6 +32,10 @@ export function calculateDynamicPrice(
     return Math.max(1, Math.round(custom500 * budgetRatio));
   }
 
+  // Prezzo d'asta reale, quando il mercato ha abbastanza aste su questo giocatore
+  const real = marketPriceFor(player, totalBudget, participants);
+  if (real !== null) return real;
+
   // Prezzo base sul listino a 500
   let price500 = player.estimatedPrice500 || player.quotation || 1;
 
@@ -43,13 +53,26 @@ export function calculateDynamicPrice(
 }
 
 /**
- * Calcola il range medio reale d'asta (Prezzo Medio, Minimo e Massimo registrato)
+ * Fascia di prezzo d'asta: minimo (affare), medio e massimo (guerra di rilanci).
+ * Quando ci sono dati di mercato reali l'ampiezza dipende da quanto il
+ * giocatore è conteso; altrimenti si ricade sulla volatilità per fascia.
  */
 export function getPlayerAuctionRange(
   player: Player,
   totalBudget: number,
   participants: number = 8
-): { avg: number; min: number; max: number; budgetPercentage: number } {
+): { avg: number; min: number; max: number; budgetPercentage: number; isReal: boolean } {
+  if (!player.isCustomPrice) {
+    const real = marketRangeFor(player, totalBudget, participants);
+    if (real) {
+      return {
+        ...real,
+        budgetPercentage: parseFloat(((real.avg / totalBudget) * 100).toFixed(1)),
+        isReal: true
+      };
+    }
+  }
+
   const avg = calculateDynamicPrice(player, totalBudget, participants);
   const budgetPercentage = parseFloat(((avg / totalBudget) * 100).toFixed(1));
 
@@ -57,7 +80,7 @@ export function getPlayerAuctionRange(
   const min = Math.max(1, Math.round(avg * (1 - volatility)));
   const max = Math.max(min + 1, Math.round(avg * (1 + volatility)));
 
-  return { avg, min, max, budgetPercentage };
+  return { avg, min, max, budgetPercentage, isReal: false };
 }
 
 /**
@@ -847,4 +870,157 @@ export function findAlternatives(
     .sort((a, b) => b.score - a.score)
     .slice(0, 4)
     .map(item => item.player);
+}
+
+/* ------------------------------------------------------------------ *
+ * VALORE DI MERCATO: quanto costa davvero vs quanto vale
+ * ------------------------------------------------------------------ */
+
+export type MarketVerdict = 'affare' | 'giusto' | 'caro';
+
+export interface MarketValuation {
+  /** Prezzo d'asta atteso nella lega dell'utente */
+  price: number;
+  /** Prezzo "giusto": quanto il mercato paga un giocatore di questo valore nel suo ruolo */
+  fairPrice: number;
+  /** Differenza in crediti (positiva = il mercato lo sottovaluta) */
+  gap: number;
+  /** Differenza in percentuale sul prezzo */
+  gapPct: number;
+  verdict: MarketVerdict;
+  /** Posizione per valore nel proprio ruolo (1 = il migliore) */
+  valueRank: number;
+  /** Posizione per prezzo nel proprio ruolo (1 = il più pagato) */
+  priceRank: number;
+  /** Il prezzo viene da aste reali o è una stima sul listino */
+  isRealPrice: boolean;
+}
+
+/**
+ * Confronta la classifica per valore con la classifica per prezzo, ruolo per ruolo.
+ *
+ * L'idea: se il mercato paga 40 crediti per il quinto miglior centrocampista,
+ * allora il quinto miglior centrocampista secondo il nostro modello "vale" 40
+ * crediti. Se ne costa 25, è un affare; se ne costa 60, stai pagando l'hype.
+ * È un confronto fra classifiche, quindi non risente di quanto sia gonfiato o
+ * depresso il mercato nel suo complesso.
+ */
+function computeMarketValuations(
+  allPlayers: Player[],
+  settings: LeagueSettings
+): Map<string, MarketValuation> {
+  const result = new Map<string, MarketValuation>();
+  const baselines = roleBaselines(allPlayers);
+
+  (['P', 'D', 'C', 'A'] as Role[]).forEach(role => {
+    const pool = allPlayers
+      .filter(p => p.role === role)
+      .map(p => ({
+        player: p,
+        score: computePlayerScore(p, settings, baselines[role]),
+        price: calculateDynamicPrice(p, settings.totalBudget, settings.participants)
+      }));
+
+    if (pool.length < 5) return;
+
+    // Il confronto ha senso solo nella zona di mercato davvero contesa: sotto,
+    // ci sono centinaia di riserve da 1 credito e ogni scarto diventa rumore.
+    const drafted = Math.max(12, settings.participants * settings.slots[role]);
+    const zone = Math.min(pool.length, Math.round(drafted * 1.4));
+
+    const sortedPrices = pool
+      .map(x => x.price)
+      .sort((a, b) => b - a)
+      .slice(0, zone);
+    const floorPrice = sortedPrices[sortedPrices.length - 1];
+
+    const byValue = [...pool].sort((a, b) => b.score - a.score);
+    const priceRankOf = new Map<string, number>();
+    [...pool]
+      .sort((a, b) => b.price - a.price)
+      .forEach((x, i) => priceRankOf.set(x.player.id, i + 1));
+
+    byValue.forEach((entry, index) => {
+      // Fuori dalla zona contesa il riferimento è il prezzo più basso della zona
+      const fairPrice = index < sortedPrices.length ? sortedPrices[index] : floorPrice;
+      const gap = fairPrice - entry.price;
+      const gapPct = gap / Math.max(1, entry.price);
+
+      // Sotto i 3 crediti di scarto le differenze sono rumore: tutti "giusti".
+      // Per dire che un giocatore è caro serve anche che costi qualcosa.
+      let verdict: MarketVerdict = 'giusto';
+      if (Math.abs(gap) >= 3) {
+        if (gapPct >= 0.35) verdict = 'affare';
+        else if (gapPct <= -0.3 && entry.price >= 5) verdict = 'caro';
+      }
+
+      result.set(entry.player.id, {
+        price: entry.price,
+        fairPrice,
+        gap,
+        gapPct,
+        verdict,
+        valueRank: index + 1,
+        priceRank: priceRankOf.get(entry.player.id) || index + 1,
+        isRealPrice: !!entry.player.market && !entry.player.isCustomPrice
+      });
+    });
+  });
+
+  return result;
+}
+
+/**
+ * Versione memoizzata: le valutazioni dipendono dal listone e dalle
+ * impostazioni di lega, entrambi stabili fra un render e l'altro.
+ */
+const valuationCache = new WeakMap<Player[], Map<string, Map<string, MarketValuation>>>();
+
+export function getMarketValuations(
+  allPlayers: Player[],
+  settings: LeagueSettings
+): Map<string, MarketValuation> {
+  const key = [
+    settings.totalBudget,
+    settings.participants,
+    settings.strategy,
+    settings.defenseModifier,
+    settings.cleanSheetBonus
+  ].join('|');
+
+  let perSettings = valuationCache.get(allPlayers);
+  if (!perSettings) {
+    perSettings = new Map();
+    valuationCache.set(allPlayers, perSettings);
+  }
+
+  const cached = perSettings.get(key);
+  if (cached) return cached;
+
+  const computed = computeMarketValuations(allPlayers, settings);
+  perSettings.set(key, computed);
+  return computed;
+}
+
+/**
+ * Prezzo massimo a cui conviene ancora spingere in asta.
+ *
+ * È il prezzo "giusto" per il valore che porta, con tre limiti:
+ *  - non oltre il 50% sopra il prezzo di mercato (più due crediti di margine):
+ *    su un giocatore da 1 credito non ha senso arrivare a 11, anche se il
+ *    modello lo stima forte — quei crediti servono altrove;
+ *  - mai sotto il prezzo di mercato, altrimenti il consiglio è inutile;
+ *  - quello che puoi davvero permetterti, lasciando un credito per ogni slot
+ *    ancora da riempire.
+ */
+export function getMaxBid(
+  valuation: MarketValuation | undefined,
+  remainingBudget: number,
+  remainingSlots: number
+): number | null {
+  if (!valuation) return null;
+  const affordable = Math.max(1, remainingBudget - Math.max(0, remainingSlots - 1));
+  const ceiling = Math.round(valuation.price * 1.5) + 2;
+  const worth = Math.max(valuation.price, Math.min(valuation.fairPrice, ceiling));
+  return Math.max(1, Math.min(affordable, worth));
 }

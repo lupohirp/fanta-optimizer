@@ -84,6 +84,30 @@ export const StrategyGuide: React.FC = () => {
         </div>
       </div>
 
+      {/* Da dove arrivano i prezzi */}
+      <div className="glass-card">
+        <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px' }}>Da dove arrivano i prezzi</h3>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '10px' }}>
+          I crediti che vedi accanto a ogni giocatore non sono la quotazione del listino, ma il{' '}
+          <strong style={{ color: 'var(--text-primary)' }}>prezzo medio realmente pagato nelle aste</strong>{' '}
+          di migliaia di leghe. Le due cose sono molto diverse: un difensore quotato 32 può
+          andarsene per 64 crediti, e un nuovo acquisto senza storico in Serie A può valere dieci
+          volte la sua quotazione.
+        </p>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '10px' }}>
+          I prezzi vengono rilevati su quattro formati di lega (8 o 10 squadre, 350 o 500 crediti) e
+          adattati al formato della tua: più squadre in lega significa più concorrenza e prezzi più
+          alti, un budget più grande significa che ogni singolo giocatore pesa percentualmente meno.
+        </p>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          L&apos;etichetta <strong style={{ color: 'var(--accent-emerald-light)' }}>Affare</strong> o{' '}
+          <strong style={{ color: '#f87171' }}>Caro</strong> nasce dal confronto fra due classifiche:
+          quanto rende un giocatore rispetto agli altri del suo ruolo, e quanto il mercato paga chi
+          occupa quella posizione. Se sei l&apos;ottavo attaccante per rendimento ma costi come il
+          venticinquesimo, sei un affare.
+        </p>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
         {guideSections.map((sec, idx) => (
           <div key={idx} className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

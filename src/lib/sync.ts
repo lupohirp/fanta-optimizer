@@ -13,6 +13,8 @@ export interface SyncResult {
   source: string;
   count: number;
   message: string;
+  /** Quanti giocatori hanno un prezzo d'asta reale agganciato */
+  marketMatches: number;
 }
 
 /**
@@ -39,6 +41,7 @@ export async function syncLivePlayers(season?: string): Promise<SyncResult> {
         lastUpdated: data.lastUpdated,
         source: 'Listone Ufficiale Fantacalcio.it',
         count: data.players.length,
+        marketMatches: typeof data.marketMatches === 'number' ? data.marketMatches : 0,
         message: `Sincronizzazione stagione ${targetSeason} completata: ${data.players.length} calciatori.`
       };
     }
@@ -52,6 +55,7 @@ export async function syncLivePlayers(season?: string): Promise<SyncResult> {
       lastUpdated: new Date().toISOString(),
       source: 'Dataset locale',
       count: INITIAL_PLAYERS.length,
+      marketMatches: 0,
       message: `Impossibile sincronizzare live: ${err.message}.`
     };
   }

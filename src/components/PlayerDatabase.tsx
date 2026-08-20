@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Player, Role, FilterOptions } from '../types';
 import { SERIE_A_TEAMS } from '../data/players';
-import { calculateDynamicPrice } from '../lib/optimizer';
+import { calculateDynamicPrice, MarketValuation } from '../lib/optimizer';
 import { 
   Search, 
   Filter, 
@@ -24,6 +24,8 @@ interface PlayerDatabaseProps {
   players: Player[];
   totalBudget: number;
   participants: number;
+  valuations?: Map<string, MarketValuation>;
+  marketMatches?: number;
   pinnedIds: string[];
   onTogglePin: (playerId: string) => void;
   onSelectPlayer: (player: Player) => void;
@@ -36,6 +38,8 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
   players,
   totalBudget,
   participants,
+  valuations,
+  marketMatches,
   pinnedIds,
   onTogglePin,
   onSelectPlayer,
@@ -105,11 +109,16 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
           comparison = b.expectedGoals - a.expectedGoals;
         } else if (filters.sortBy === 'name') {
           comparison = a.name.localeCompare(b.name);
+        } else if (filters.sortBy === 'value') {
+          // Convenienza: quanto il mercato lo sottopaga rispetto a quanto rende
+          const gapA = valuations?.get(a.id)?.gap ?? -Infinity;
+          const gapB = valuations?.get(b.id)?.gap ?? -Infinity;
+          comparison = gapB - gapA;
         }
 
         return filters.sortOrder === 'desc' ? comparison : -comparison;
       });
-  }, [players, filters, totalBudget, participants]);
+  }, [players, filters, totalBudget, participants, valuations]);
 
   const handleSortChange = (field: FilterOptions['sortBy']) => {
     setFilters(prev => ({
@@ -127,7 +136,9 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Listone Ufficiale Serie A 2026/27</h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Ordinamento prioritario per Titolarità & Certezza di voto
+              {marketMatches
+                ? `Prezzi medi pagati nelle aste vere su ${marketMatches} giocatori`
+                : 'Ordinamento prioritario per Titolarità & Certezza di voto'}
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -292,6 +303,12 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
                     <ArrowUpDown size={12} />
                   </div>
                 </th>
+                <th style={{ padding: '12px 14px', textAlign: 'center', cursor: 'pointer' }} onClick={() => handleSortChange('value')}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                    <span>Mercato</span>
+                    <ArrowUpDown size={12} />
+                  </div>
+                </th>
                 <th style={{ padding: '12px 14px', textAlign: 'center' }}>Caratteristiche</th>
                 <th style={{ padding: '12px 14px', textAlign: 'right' }}>Azioni</th>
               </tr>
@@ -300,6 +317,7 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
               {filteredPlayers.map(p => {
                 const isPinned = pinnedIds.includes(p.id);
                 const price = calculateDynamicPrice(p, totalBudget, participants);
+                const valuation = valuations?.get(p.id);
                 const isHighStarter = p.starterProbability >= 85;
 
                 return (
@@ -374,6 +392,33 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
 
                     <td style={{ padding: '12px 14px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
                       {p.expectedGoals}G / {p.expectedAssists}A
+                    </td>
+
+                    <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                      {valuation && valuation.verdict !== 'giusto' ? (
+                        <span
+                          title={`Prezzo d'asta ${valuation.price} cr, ne vale circa ${valuation.fairPrice} cr`}
+                          style={{
+                            fontSize: '0.68rem',
+                            padding: '2px 7px',
+                            borderRadius: '4px',
+                            fontWeight: 700,
+                            background: valuation.verdict === 'affare' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(248, 113, 113, 0.15)',
+                            color: valuation.verdict === 'affare' ? 'var(--accent-emerald-light)' : '#f87171'
+                          }}
+                        >
+                          {valuation.verdict === 'affare' ? 'Affare' : 'Caro'}
+                        </span>
+                      ) : null}
+                      {valuation && valuation.verdict !== 'giusto' ? (
+                        <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+                          vale {valuation.fairPrice}
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                          {p.market ? 'in linea' : '-'}
+                        </span>
+                      )}
                     </td>
 
                     <td style={{ padding: '12px 14px', textAlign: 'center' }}>

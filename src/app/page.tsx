@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Player, LeagueSettings, GeneratedSquad } from '../types';
 import { INITIAL_PLAYERS } from '../data/players';
-import { optimizeSquad, findAlternatives, calculateDynamicPrice, buildStartingXI } from '../lib/optimizer';
+import { optimizeSquad, findAlternatives, calculateDynamicPrice, buildStartingXI, getMarketValuations } from '../lib/optimizer';
 import { formatSquadForWhatsApp, exportSquadToCSV } from '../lib/export';
 import { syncLivePlayers, getLastSyncInfo } from '../lib/sync';
 import { getCurrentSeason, formatSeasonLabel } from '../lib/season';
@@ -111,6 +111,15 @@ export default function Home() {
     }, []);
   });
 
+  // Quanti giocatori hanno un prezzo d'asta reale agganciato
+  const [marketMatches, setMarketMatches] = useState(0);
+
+  // Valutazioni di mercato: quanto costa davvero ogni giocatore e quanto vale
+  const marketValuations = useMemo(
+    () => getMarketValuations(allPlayers, settings),
+    [allPlayers, settings]
+  );
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
@@ -128,6 +137,7 @@ export default function Home() {
       if (result.success && result.players.length > 0) {
         setAllPlayers(result.players);
         setSquad(optimizeSquad(result.players, settings, []));
+        setMarketMatches(result.marketMatches);
         setLastSyncTime('Adesso');
       }
     });
@@ -144,6 +154,7 @@ export default function Home() {
       setAllPlayers(result.players);
       setPinnedIds([]);
       setSquad(optimizeSquad(result.players, { ...settings, selectedSeason: newSeason }, []));
+      setMarketMatches(result.marketMatches);
       setLastSyncTime('Adesso');
       showToast(`Stagione ${formatSeasonLabel(newSeason)} caricata (${result.count} giocatori)!`);
     }
@@ -157,6 +168,7 @@ export default function Home() {
     if (result.success && result.players.length > 0) {
       setAllPlayers(result.players);
       setSquad(optimizeSquad(result.players, settings, pinnedIds));
+      setMarketMatches(result.marketMatches);
       setLastSyncTime('Adesso');
       showToast(`Listone ufficiale ${formatSeasonLabel(settings.selectedSeason)} aggiornato! (${result.count} giocatori)`);
     } else {
@@ -657,6 +669,7 @@ export default function Home() {
             allPlayers={allPlayers}
             totalBudget={settings.totalBudget}
             participants={settings.participants}
+            valuations={marketValuations}
             onSelectPlayer={(p) => setSelectedPlayerForModal(p)}
           />
         )}
@@ -666,6 +679,8 @@ export default function Home() {
             players={allPlayers}
             totalBudget={settings.totalBudget}
             participants={settings.participants}
+            valuations={marketValuations}
+            marketMatches={marketMatches}
             pinnedIds={pinnedIds}
             onTogglePin={handleTogglePin}
             onSelectPlayer={(p) => setSelectedPlayerForModal(p)}
@@ -708,6 +723,7 @@ export default function Home() {
             setIsEditModalOpen(true);
           }}
           onSavePlayer={handleSavePlayer}
+          valuation={marketValuations.get(selectedPlayerForModal.id)}
         />
       )}
 

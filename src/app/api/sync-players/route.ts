@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { INITIAL_PLAYERS } from '@/data/players';
 import { Player, Role, HistoricalStats } from '@/types';
 import { getCurrentSeason, getPreviousSeason } from '@/lib/season';
+import { fetchMarketRows, attachMarketData } from '@/lib/market-source';
+import { marketPriceFor, marketRangeFor } from '@/lib/market';
 import historicalStatsMap from '@/data/historical_stats_2025_26.json';
 
 export const revalidate = 1800; // Cache for 30 minutes on Vercel
@@ -93,6 +95,60 @@ function calibratePrice500(quotation: number, role: Role): number {
     if (q >= 10) return Math.round(8 + (q - 10) * 1.2);  // Skorupski, Falcone, Okoye ~ 8-16 cr
     if (q >= 3)  return Math.round(2 + (q - 3) * 0.5);   // Riserve ~ 2-4 cr
     return 1;
+  }
+}
+
+/** Fascia di mercato dedotta dal prezzo d'asta, con soglie diverse per ruolo */
+function tierFromPrice500(price500: number, role: Role): 1 | 2 | 3 | 4 | 5 {
+  const cuts: Record<Role, number[]> = {
+    A: [80, 35, 14, 5],
+    C: [35, 18, 7, 3],
+    D: [20, 10, 5, 2],
+    P: [22, 12, 5, 2]
+  };
+  const [t1, t2, t3, t4] = cuts[role];
+  if (price500 >= t1) return 1;
+  if (price500 >= t2) return 2;
+  if (price500 >= t3) return 3;
+  if (price500 >= t4) return 4;
+  return 5;
+}
+
+/**
+ * Sostituisce le stime di prezzo con i prezzi realmente pagati nelle aste,
+ * dove esistono, e ricalcola di conseguenza fascia e range.
+ * Se la sorgente di mercato non risponde, i giocatori restano intatti.
+ */
+async function enrichWithMarket(players: Player[]): Promise<number> {
+  try {
+    const rows = await fetchMarketRows();
+    const matched = attachMarketData(players, rows);
+
+    for (const player of players) {
+      if (!player.market) continue;
+      // Riferimento standard: lega da 8 squadre con 500 crediti
+      const real500 = marketPriceFor(player, 500, 8);
+      if (real500 === null) continue;
+
+      player.estimatedPrice500 = real500;
+      player.avgAuctionPrice500 = real500;
+      player.tier = tierFromPrice500(real500, player.role);
+      player.budgetPercentage = parseFloat(((real500 / 500) * 100).toFixed(1));
+
+      const range = marketRangeFor(player, 500, 8);
+      if (range) {
+        player.minAuctionPrice500 = range.min;
+        player.maxAuctionPrice500 = range.max;
+      }
+
+      if (typeof player.market.trend7d === 'number' && Math.abs(player.market.trend7d) >= 0.5) {
+        player.trend = player.market.trend7d > 0 ? 'up' : 'down';
+      }
+    }
+
+    return matched;
+  } catch {
+    return 0;
   }
 }
 
@@ -190,33 +246,7 @@ export async function GET(request: Request) {
         }
 
         const estimatedPrice500 = calibratePrice500(quotation, role);
-
-        let tier: 1 | 2 | 3 | 4 | 5 = 5;
-        if (role === 'A') {
-          if (estimatedPrice500 >= 80) tier = 1;
-          else if (estimatedPrice500 >= 35) tier = 2;
-          else if (estimatedPrice500 >= 14) tier = 3;
-          else if (estimatedPrice500 >= 5) tier = 4;
-          else tier = 5;
-        } else if (role === 'C') {
-          if (estimatedPrice500 >= 35) tier = 1;
-          else if (estimatedPrice500 >= 18) tier = 2;
-          else if (estimatedPrice500 >= 7) tier = 3;
-          else if (estimatedPrice500 >= 3) tier = 4;
-          else tier = 5;
-        } else if (role === 'D') {
-          if (estimatedPrice500 >= 20) tier = 1;
-          else if (estimatedPrice500 >= 10) tier = 2;
-          else if (estimatedPrice500 >= 5) tier = 3;
-          else if (estimatedPrice500 >= 2) tier = 4;
-          else tier = 5;
-        } else {
-          if (estimatedPrice500 >= 22) tier = 1;
-          else if (estimatedPrice500 >= 12) tier = 2;
-          else if (estimatedPrice500 >= 5) tier = 3;
-          else if (estimatedPrice500 >= 2) tier = 4;
-          else tier = 5;
-        }
+        const tier = tierFromPrice500(estimatedPrice500, role);
 
         const budgetPercentage = parseFloat(((estimatedPrice500 / 500) * 100).toFixed(1));
         const volatility = tier === 1 ? 0.15 : tier === 2 ? 0.22 : tier === 3 ? 0.30 : 0.40;
@@ -248,12 +278,16 @@ export async function GET(request: Request) {
       }
 
       if (parsedPlayers.length > 100) {
+        // Aggancia i prezzi realmente pagati nelle aste e ricalibra su quelli
+        const marketMatches = await enrichWithMarket(parsedPlayers);
+
         return NextResponse.json({
           success: true,
           source: 'fantacalcio_official_live',
           season: targetSeason,
           players: parsedPlayers,
           count: parsedPlayers.length,
+          marketMatches,
           lastUpdated: new Date().toISOString()
         });
       }
@@ -262,12 +296,17 @@ export async function GET(request: Request) {
     // Fallback
   }
 
+  // Anche sul dataset locale proviamo ad agganciare i prezzi d'asta reali
+  const fallbackPlayers: Player[] = INITIAL_PLAYERS.map(p => ({ ...p }));
+  const marketMatches = await enrichWithMarket(fallbackPlayers);
+
   return NextResponse.json({
     success: true,
     source: 'official_integrated_2026_27',
     season: targetSeason,
-    players: INITIAL_PLAYERS,
-    count: INITIAL_PLAYERS.length,
+    players: fallbackPlayers,
+    count: fallbackPlayers.length,
+    marketMatches,
     lastUpdated: new Date().toISOString()
   });
 }

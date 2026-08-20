@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Player } from '../types';
-import { calculateDynamicPrice, getPlayerAuctionRange } from '../lib/optimizer';
+import { calculateDynamicPrice, getPlayerAuctionRange, MarketValuation } from '../lib/optimizer';
+import { marketAnchorLabels } from '../lib/market';
 import { 
   Pin, 
   PinOff, 
@@ -33,6 +34,7 @@ interface PlayerModalProps {
   onTogglePin: (playerId: string) => void;
   onEditPlayer?: (player: Player) => void;
   onSavePlayer?: (player: Player) => void;
+  valuation?: MarketValuation;
 }
 
 export const PlayerModal: React.FC<PlayerModalProps> = ({
@@ -43,7 +45,8 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
   isPinned,
   onTogglePin,
   onEditPlayer,
-  onSavePlayer
+  onSavePlayer,
+  valuation
 }) => {
   if (!player) return null;
 
@@ -249,35 +252,111 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           </div>
         </div>
 
-        {/* Real Auction Market Stats (Prezzi Medi d'Asta Reali) */}
+        {/* Mercato: quanto viene pagato davvero nelle aste */}
         <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: '16px' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-gold)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Gavel size={14} />
-            <span>CAMPIONE NAZIONALE PREZZI D'ASTA (SERIE A)</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '10px' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Gavel size={14} style={{ color: 'var(--text-muted)' }} />
+              <span>{auctionRange.isReal ? 'Prezzi d\'asta reali' : 'Prezzo stimato'}</span>
+            </div>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+              lega da {participants} · {totalBudget} cr
+            </span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center' }}>
             <div style={{ background: 'var(--bg-card)', padding: '8px', borderRadius: 'var(--radius-sm)' }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Minimo (Affare)</div>
-              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--accent-emerald-light)', fontFamily: 'var(--font-mono)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Se lo prendi bene</div>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--accent-emerald-light)', fontFamily: 'var(--font-mono)' }}>
                 {auctionRange.min} cr
               </div>
             </div>
 
-            <div style={{ background: 'var(--bg-card)', padding: '8px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--accent-gold)' }}>Media Calibrata</div>
-              <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--accent-gold)', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ background: 'var(--bg-card)', padding: '8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Prezzo medio</div>
+              <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                 {auctionRange.avg} cr
               </div>
             </div>
 
             <div style={{ background: 'var(--bg-card)', padding: '8px', borderRadius: 'var(--radius-sm)' }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Massimo (Hype)</div>
-              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f87171', fontFamily: 'var(--font-mono)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Se parte l&apos;asta</div>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f87171', fontFamily: 'var(--font-mono)' }}>
                 {auctionRange.max} cr
               </div>
             </div>
           </div>
+
+          {/* Verdetto: quanto vale rispetto a quanto costa */}
+          {valuation && valuation.verdict !== 'giusto' && (
+            <div style={{
+              marginTop: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap',
+              fontSize: '0.78rem'
+            }}>
+              <span style={{
+                padding: '3px 8px',
+                borderRadius: 'var(--radius-sm)',
+                fontWeight: 700,
+                fontSize: '0.72rem',
+                background: valuation.verdict === 'affare' ? 'rgba(16, 185, 129, 0.14)' : 'rgba(248, 113, 113, 0.14)',
+                color: valuation.verdict === 'affare' ? 'var(--accent-emerald-light)' : '#f87171'
+              }}>
+                {valuation.verdict === 'affare' ? 'Affare' : 'Sopravvalutato'}
+              </span>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                per il rendimento che dà ne vale circa{' '}
+                <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{valuation.fairPrice} cr</strong>
+              </span>
+            </div>
+          )}
+
+          {/* Prezzi osservati nei vari formati di lega + quanto è conteso */}
+          {player.market && (
+            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {marketAnchorLabels(player.market).length > 0 && (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {marketAnchorLabels(player.market).map(a => (
+                    <span key={a.label} style={{
+                      fontSize: '0.7rem',
+                      color: 'var(--text-secondary)',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '3px 7px',
+                      fontFamily: 'var(--font-mono)'
+                    }}>
+                      {a.label}: {Math.round(a.value)} cr
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {typeof player.market.ownership === 'number' && (
+                  <span>
+                    In rosa nel{' '}
+                    <strong style={{ color: 'var(--text-secondary)' }}>
+                      {player.market.ownership.toString().replace('.', ',')}%
+                    </strong>{' '}
+                    delle squadre
+                  </span>
+                )}
+                {typeof player.market.trend7d === 'number' && player.market.trend7d !== 0 && (
+                  <span>
+                    Ultimi 7 giorni{' '}
+                    <strong style={{ color: player.market.trend7d > 0 ? 'var(--accent-emerald-light)' : '#f87171' }}>
+                      {player.market.trend7d > 0 ? '+' : ''}
+                      {player.market.trend7d.toString().replace('.', ',')} cr
+                    </strong>
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Historical Stats Section */}
@@ -329,7 +408,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
               ~{player.expectedGoals} gol
             </span>
             <span style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: '0.75rem', padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>
-              🅰️ ~{player.expectedAssists} Assist
+              ~{player.expectedAssists} assist
             </span>
           </div>
 

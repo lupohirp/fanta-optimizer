@@ -1,3 +1,5 @@
+import { MarketQuote } from '../lib/market';
+
 export type Role = 'P' | 'D' | 'C' | 'A';
 
 export interface HistoricalStats {
@@ -37,6 +39,7 @@ export interface Player {
   maxAuctionPrice500?: number; // Range massimo asta reale
   budgetPercentage?: number;   // Percentuale media sul budget complessivo (%)
   isCustomPrice?: boolean;     // Indica se l'utente ha impostato un prezzo custom
+  market?: MarketQuote;        // Prezzi d'asta realmente pagati nelle leghe + quanto è conteso
 }
 
 export type StrategyType = 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Player, Role, LiveAuctionItem, GeneratedSquad } from '../types';
-import { calculateDynamicPrice, findAlternatives, getPlayerAuctionRange } from '../lib/optimizer';
+import { calculateDynamicPrice, findAlternatives, getPlayerAuctionRange, getMaxBid, MarketValuation } from '../lib/optimizer';
 import { 
   Gavel, 
   CheckCircle2, 
@@ -30,6 +30,7 @@ interface LiveAuctionAssistantProps {
   allPlayers: Player[];
   totalBudget: number;
   participants: number;
+  valuations?: Map<string, MarketValuation>;
   onSelectPlayer: (player: Player) => void;
 }
 
@@ -38,6 +39,7 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
   allPlayers,
   totalBudget,
   participants,
+  valuations,
   onSelectPlayer
 }) => {
   const [squadSource, setSquadSource] = useState<'custom' | 'optimized'>('custom');
@@ -334,6 +336,11 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
           const isSkipped = item.status === 'skipped';
           const p = item.boughtPlayer;
           const priceDiff = (item.boughtPrice || 0) - item.targetBudget;
+          // Fin dove conviene rilanciare: valore reale del giocatore, limitato
+          // da quanto resta in cassa lasciando un credito per ogni slot ancora da riempire
+          const maxBid = p
+            ? getMaxBid(valuations?.get(p.id), remainingBudgetLive, pendingItems.length)
+            : null;
 
           return (
             <div
@@ -376,12 +383,28 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
                       )}
                       {p.isPenaltyTaker && <span title="Rigorista" style={{ color: '#f87171', fontWeight: 800, fontSize: '0.7rem' }}>R</span>}
                     </div>
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>Target: <strong style={{ color: 'var(--accent-gold)' }}>{item.targetBudget} cr</strong></span>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span>Prezzo d&apos;asta: <strong style={{ color: 'var(--text-secondary)' }}>{item.targetBudget} cr</strong></span>
+                      {!isBought && maxBid !== null && maxBid > item.targetBudget && (
+                        <>
+                          <span>•</span>
+                          <span title="Oltre questa cifra conviene lasciarlo e ripiegare sulle alternative">
+                            spingi fino a <strong style={{ color: 'var(--accent-emerald-light)' }}>{maxBid} cr</strong>
+                          </span>
+                        </>
+                      )}
                       <span>•</span>
                       <span style={{ color: 'var(--accent-emerald-light)', fontWeight: 700 }}>FM {p.expectedPoints.toFixed(1)}</span>
                       <span>•</span>
                       <span>{p.starterProbability}% Tit.</span>
+                      {typeof p.market?.ownership === 'number' && p.market.ownership >= 10 && (
+                        <>
+                          <span>•</span>
+                          <span title="Percentuale di squadre che lo hanno in rosa: aspettati concorrenza">
+                            conteso ({p.market.ownership.toString().replace('.', ',')}%)
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : (
