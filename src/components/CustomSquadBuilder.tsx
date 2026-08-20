@@ -505,7 +505,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
             <button
               onClick={handleJudgeSquad}
               className="btn-secondary"
-              style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px', background: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)', color: '#fbbf24' }}
+              style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px' }}
               title="Pagelle, voto e analisi reparto per reparto con l'AI"
             >
               <Trophy size={15} />
@@ -557,7 +557,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
         {/* Modulo e modificatori di lega: valgono per XI, completamento e giudizio AI */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginRight: '4px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginRight: '4px' }}>
               Modulo
             </span>
             {(['auto', '3-4-3', '4-3-3', '3-5-2', '4-4-2', '4-2-3-1'] as const).map(f => {
@@ -567,19 +567,15 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                   key={f}
                   onClick={() => setSettings(prev => ({ ...prev, targetFormation: f }))}
                   style={{
-                    background: isSelected
-                      ? 'linear-gradient(135deg, #34d399 0%, #10b981 45%, #059669 100%)'
-                      : 'var(--bg-card-subtle)',
+                    background: isSelected ? 'var(--accent-emerald)' : 'var(--bg-card-subtle)',
                     color: isSelected ? '#fff' : 'var(--text-secondary)',
-                    border: isSelected ? '1px solid transparent' : '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-full)',
+                    border: '1px solid ' + (isSelected ? 'var(--accent-emerald)' : 'var(--border-subtle)'),
+                    borderRadius: 'var(--radius-md)',
                     padding: '5px 12px',
                     fontSize: '0.76rem',
                     fontWeight: 700,
-                    fontFamily: f === 'auto' ? 'inherit' : 'var(--font-mono)',
                     cursor: 'pointer',
-                    boxShadow: isSelected ? '0 4px 12px rgba(16, 185, 129, 0.35)' : 'none',
-                    transition: 'all 0.15s ease'
+                    transition: 'background 0.15s ease'
                   }}
                 >
                   {f === 'auto' ? 'Auto' : f}
@@ -759,7 +755,11 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                           <span style={{ color: player.starterProbability >= 85 ? 'var(--accent-emerald-light)' : 'var(--text-muted)', fontWeight: 700 }}>
                             {player.starterProbability}% Tit.
                           </span>
-                          {player.isPenaltyTaker && <span>🎯</span>}
+                          {player.isPenaltyTaker && (
+                            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#f87171', background: 'rgba(239, 68, 68, 0.15)', padding: '1px 5px', borderRadius: '4px' }} title="Rigorista">
+                              R
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1019,12 +1019,12 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                           </span>
                           {player.isCustomPrice && (
                             <span style={{ fontSize: '0.65rem', background: 'rgba(245, 158, 11, 0.2)', color: 'var(--accent-gold)', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>
-                              ✏️ Custom
+                              Prezzo custom
                             </span>
                           )}
                           {isHighStarter && (
                             <span style={{ fontSize: '0.68rem', background: 'rgba(16, 185, 129, 0.2)', color: 'var(--accent-emerald-light)', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                              ⚡ Titolare
+                              Titolare
                             </span>
                           )}
                         </div>
@@ -1045,7 +1045,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                             Titolarità: <strong style={{ color: isHighStarter ? 'var(--accent-emerald-light)' : player.starterProbability >= 70 ? '#fbbf24' : '#ef4444' }}>{player.starterProbability}%</strong>
                           </span>
 
-                          {player.isPenaltyTaker && <span style={{ color: '#f87171', fontWeight: 700 }}>🎯 Rigori</span>}
+                          {player.isPenaltyTaker && <span style={{ color: '#f87171', fontWeight: 700 }}>Rigorista</span>}
                         </div>
                       </div>
 

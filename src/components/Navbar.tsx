@@ -56,15 +56,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                color: 'var(--accent-emerald-light)',
-                padding: '1px 8px',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
+                color: 'var(--text-muted)',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                cursor: 'pointer'
               }}
               title="Clicca per aggiornare le quotazioni ufficiali Fantacalcio.it"
             >
@@ -72,8 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                background: isSyncing ? '#f59e0b' : '#10b981',
-                boxShadow: isSyncing ? '0 0 8px #f59e0b' : '0 0 8px #10b981'
+                background: isSyncing ? '#f59e0b' : '#10b981'
               }} />
               <span>{isSyncing ? 'Aggiornamento...' : lastSyncTime}</span>
               <RefreshCw size={10} className={isSyncing ? 'spin' : ''} style={{ marginLeft: '2px' }} />

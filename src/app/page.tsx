@@ -121,7 +121,7 @@ export default function Home() {
   const handleSeasonChange = async (newSeason: string) => {
     setSettings(prev => ({ ...prev, selectedSeason: newSeason }));
     setIsSyncing(true);
-    showToast(`🔄 Caricamento stagione ${formatSeasonLabel(newSeason)}...`);
+    showToast(`Caricamento stagione ${formatSeasonLabel(newSeason)}...`);
     const result = await syncLivePlayers(newSeason);
     setIsSyncing(false);
     if (result.success && result.players.length > 0) {
@@ -129,7 +129,7 @@ export default function Home() {
       setPinnedIds([]);
       setSquad(optimizeSquad(result.players, { ...settings, selectedSeason: newSeason }, []));
       setLastSyncTime('Adesso');
-      showToast(`🟢 Stagione ${formatSeasonLabel(newSeason)} caricata (${result.count} giocatori)!`);
+      showToast(`Stagione ${formatSeasonLabel(newSeason)} caricata (${result.count} giocatori)!`);
     }
   };
 
@@ -142,9 +142,9 @@ export default function Home() {
       setAllPlayers(result.players);
       setSquad(optimizeSquad(result.players, settings, pinnedIds));
       setLastSyncTime('Adesso');
-      showToast(`🟢 Listone ufficiale ${formatSeasonLabel(settings.selectedSeason)} aggiornato! (${result.count} giocatori)`);
+      showToast(`Listone ufficiale ${formatSeasonLabel(settings.selectedSeason)} aggiornato! (${result.count} giocatori)`);
     } else {
-      showToast(`🟢 Listone ${formatSeasonLabel(settings.selectedSeason)} sincronizzato.`);
+      showToast(`Listone ${formatSeasonLabel(settings.selectedSeason)} sincronizzato.`);
     }
   };
 
@@ -166,7 +166,7 @@ export default function Home() {
       const generated = optimizeSquad(allPlayers, settings, pinnedIds, [], Math.floor(Math.random() * 1e9));
       setSquad(generated);
       setIsGenerating(false);
-      showToast(`⚡ Rosa ${formatSeasonLabel(settings.selectedSeason)} ottimizzata!`);
+      showToast(`Rosa ${formatSeasonLabel(settings.selectedSeason)} ottimizzata!`);
     }, 250);
   }, [allPlayers, settings, pinnedIds]);
 
@@ -176,10 +176,10 @@ export default function Home() {
     const exists = allPlayers.some(p => p.id === saved.id);
     if (exists) {
       updated = allPlayers.map(p => p.id === saved.id ? saved : p);
-      showToast(`✏️ Giocatore ${saved.name} aggiornato!`);
+      showToast(`Giocatore ${saved.name} aggiornato!`);
     } else {
       updated = [saved, ...allPlayers];
-      showToast(`➕ Calciatore ${saved.name} aggiunto al listone!`);
+      showToast(`Calciatore ${saved.name} aggiunto al listone!`);
     }
     setAllPlayers(updated);
     try {
@@ -202,7 +202,7 @@ export default function Home() {
       console.error(e);
     }
     setSquad(optimizeSquad(updated, settings, pinnedIds.filter(id => id !== playerId)));
-    showToast(`🗑️ ${player?.name || 'Giocatore'} rimosso.`);
+    showToast(`${player?.name || 'Giocatore'} rimosso.`);
   };
 
   // Toggle player pin
@@ -210,7 +210,7 @@ export default function Home() {
     setPinnedIds(prev => {
       const exists = prev.includes(playerId);
       const next = exists ? prev.filter(id => id !== playerId) : [...prev, playerId];
-      showToast(exists ? '🔓 Giocatore sbloccato' : '📌 Giocatore bloccato nella rosa!');
+      showToast(exists ? 'Giocatore sbloccato' : 'Giocatore bloccato in rosa');
       return next;
     });
   };
@@ -237,7 +237,7 @@ export default function Home() {
     const reoptimized = optimizeSquad(allPlayers, customSettings, newPinned);
     setSquad(reoptimized);
     setAlternativeTargetPlayer(null);
-    showToast(`✅ Sostituito ${oldPlayer.name} con ${newPlayer.name}!`);
+    showToast(`Sostituito ${oldPlayer.name} con ${newPlayer.name}!`);
   };
 
   // Share for WhatsApp
@@ -245,7 +245,7 @@ export default function Home() {
     const text = formatSquadForWhatsApp(squad, settings.totalBudget, settings.participants);
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
-      showToast('📋 Rosa formattata copiata negli appunti per WhatsApp!');
+      showToast('Rosa copiata negli appunti, pronta per WhatsApp');
     } else {
       showToast('Impossibile accedere agli appunti');
     }
@@ -254,7 +254,7 @@ export default function Home() {
   // Export CSV
   const handleExportCSV = () => {
     exportSquadToCSV(squad, settings.totalBudget, settings.participants);
-    showToast('📥 Download file CSV avviato!');
+    showToast('Download CSV avviato');
   };
 
   // Judge Current Squad
@@ -295,8 +295,8 @@ export default function Home() {
           bottom: '24px',
           right: '24px',
           zIndex: 999,
-          background: 'var(--bg-card)',
-          border: '1px solid var(--accent-emerald)',
+          background: 'var(--bg-card-subtle)',
+          border: '1px solid var(--border-subtle)',
           color: 'var(--text-primary)',
           padding: '12px 20px',
           borderRadius: 'var(--radius-lg)',
@@ -408,7 +408,7 @@ export default function Home() {
                 <button
                   onClick={handleJudgeCurrentSquad}
                   className="btn-secondary"
-                  style={{ padding: '8px 14px', fontSize: '0.82rem', gap: '6px', background: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)', color: '#fbbf24' }}
+                  style={{ padding: '8px 14px', fontSize: '0.82rem', gap: '6px' }}
                   title="Pagelle e voto della rosa con l'AI"
                 >
                   <Trophy size={14} />
@@ -426,8 +426,8 @@ export default function Home() {
 
                 <button
                   onClick={handleShareWhatsApp}
-                  className="btn-primary"
-                  style={{ padding: '8px 16px', fontSize: '0.82rem', gap: '6px' }}
+                  className="btn-secondary"
+                  style={{ padding: '8px 14px', fontSize: '0.82rem', gap: '6px' }}
                 >
                   <Share2 size={14} />
                   <span>WhatsApp</span>
@@ -438,7 +438,7 @@ export default function Home() {
             {/* Modulo: selezione diretta, l'XI si ridispone subito */}
             {viewMode === 'pitch' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginRight: '4px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginRight: '4px' }}>
                   Modulo
                 </span>
                 {(['auto', '3-4-3', '4-3-3', '3-5-2', '4-4-2', '4-2-3-1'] as const).map(f => {
@@ -448,19 +448,15 @@ export default function Home() {
                       key={f}
                       onClick={() => handleFormationChange(f)}
                       style={{
-                        background: isSelected
-                          ? 'linear-gradient(135deg, #34d399 0%, #10b981 45%, #059669 100%)'
-                          : 'var(--bg-card-subtle)',
+                        background: isSelected ? 'var(--accent-emerald)' : 'var(--bg-card-subtle)',
                         color: isSelected ? '#fff' : 'var(--text-secondary)',
-                        border: isSelected ? '1px solid transparent' : '1px solid var(--border-subtle)',
-                        borderRadius: 'var(--radius-full)',
+                        border: '1px solid ' + (isSelected ? 'var(--accent-emerald)' : 'var(--border-subtle)'),
+                        borderRadius: 'var(--radius-md)',
                         padding: '6px 13px',
                         fontSize: '0.78rem',
                         fontWeight: 700,
-                        fontFamily: f === 'auto' ? 'inherit' : 'var(--font-mono)',
                         cursor: 'pointer',
-                        boxShadow: isSelected ? '0 4px 12px rgba(16, 185, 129, 0.35)' : 'none',
-                        transition: 'all 0.15s ease'
+                        transition: 'background 0.15s ease'
                       }}
                     >
                       {f === 'auto' ? 'Auto' : f}
@@ -536,7 +532,7 @@ export default function Home() {
             onSaveToMainSquad={(customSq) => {
               setSquad(customSq);
               setActiveTab('generator');
-              showToast('✅ Rosa custom applicata!');
+              showToast('Rosa custom applicata');
             }}
             onSelectPlayerModal={(p) => setSelectedPlayerForModal(p)}
           />
@@ -652,7 +648,7 @@ export default function Home() {
                           {alt.name} <span style={{ color: 'var(--text-secondary)', fontWeight: 500, fontSize: '0.8rem' }}>({alt.team})</span>
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          FM attesa: <strong style={{ color: 'var(--accent-emerald-light)' }}>{alt.expectedPoints.toFixed(1)}</strong> {alt.isPenaltyTaker && '• 🎯 Rigori'}
+                          FM attesa: <strong style={{ color: 'var(--accent-emerald-light)' }}>{alt.expectedPoints.toFixed(1)}</strong> {alt.isPenaltyTaker && '· Rigorista'}
                         </div>
                         {alt.notes && (
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '4px' }}>

@@ -38,20 +38,23 @@ export const PitchView: React.FC<PitchViewProps> = ({
         <div className={`player-jersey ${p.role}`}>
           {p.expectedPoints.toFixed(1)}
           {p.isPenaltyTaker && (
-            <span style={{ 
-              position: 'absolute', 
-              top: '-4px', 
-              right: '-4px', 
-              background: '#ef4444', 
-              borderRadius: '50%', 
-              width: '14px', 
-              height: '14px', 
-              display: 'flex', 
-              alignItems: 'center', 
+            <span style={{
+              position: 'absolute',
+              top: '-4px',
+              right: '-5px',
+              background: '#111113',
+              border: '1px solid rgba(255, 255, 255, 0.7)',
+              borderRadius: '50%',
+              width: '15px',
+              height: '15px',
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '8px'
-            }}>
-              🎯
+              fontSize: '9px',
+              fontWeight: 800,
+              color: '#fff'
+            }} title="Rigorista">
+              R
             </span>
           )}
         </div>
@@ -157,7 +160,7 @@ export const PitchView: React.FC<PitchViewProps> = ({
                       {p.name}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      {p.team} {p.isPenaltyTaker && '• 🎯'}
+                      {p.team}{p.isPenaltyTaker && <span style={{ color: '#f87171', fontWeight: 700 }}> · R</span>}
                     </div>
                   </div>
                 </div>

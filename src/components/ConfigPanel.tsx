@@ -96,7 +96,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             >
               {availableSeasons.map(s => (
                 <option key={s} value={s} style={{ background: 'var(--bg-card)', color: '#fff' }}>
-                  Stagione {formatSeasonLabel(s)} {s === currentSeason ? '⭐' : ''}
+                  Stagione {formatSeasonLabel(s)}{s === currentSeason ? ' (attuale)' : ''}
                 </option>
               ))}
             </select>
@@ -360,7 +360,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                 }}
               >
                 <div style={{ fontWeight: 700, fontSize: '0.9rem', color: isSelected ? '#fff' : 'var(--text-primary)', marginBottom: '4px' }}>
-                  {strat.name}
+                  {strat.name.replace(/^[^\p{L}]+/u, '')}
                 </div>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.3 }}>
                   {strat.shortDesc}
