@@ -182,7 +182,13 @@ export default function Home() {
       showToast('Questa rosa è già salvata');
       return;
     }
-    const entry: SavedSquad = { ...squad, participants: settings.participants };
+    // Numero progressivo se esiste già una rosa salvata con lo stesso nome
+    const clashes = savedSquads.filter(s => s.name === squad.name || s.name.startsWith(squad.name + ' #')).length;
+    const entry: SavedSquad = {
+      ...squad,
+      name: clashes > 0 ? `${squad.name} #${clashes + 1}` : squad.name,
+      participants: settings.participants
+    };
     const next = [entry, ...savedSquads].slice(0, 20);
     setSavedSquads(next);
     try {
