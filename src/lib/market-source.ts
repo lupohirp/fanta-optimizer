@@ -1,5 +1,8 @@
 import { Player, Role } from '../types';
 import { MarketQuote } from './market';
+import { decodeEntities, normalizeName } from './text';
+
+export { decodeEntities, normalizeName };
 
 /**
  * SORGENTE DEI PREZZI D'ASTA REALI (lato server)
@@ -28,25 +31,6 @@ export interface MarketRow {
   quote: MarketQuote;
 }
 
-/** Decodifica le entità HTML numeriche e le poche nominali che compaiono nei listoni */
-export function decodeEntities(input: string): string {
-  return input
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&nbsp;/g, ' ');
-}
-
-/** Chiave di confronto: niente accenti, niente punteggiatura, tutto minuscolo */
-export function normalizeName(input: string): string {
-  return decodeEntities(input)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .toLowerCase();
-}
 
 function parseNumber(raw: string): number | undefined {
   const cleaned = raw.replace(/<[^>]+>/g, '').replace(/\s|\+/g, '').replace(',', '.');

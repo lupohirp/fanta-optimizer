@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Player, Role, LeagueSettings, GeneratedSquad } from '../types';
 import { calculateDynamicPrice, optimizeSquad, buildStartingXI } from '../lib/optimizer';
+import { resolveStoredSlots } from '../lib/player-resolve';
 import { SquadJudgeModal, SquadEvaluation } from './SquadJudgeModal';
 import {
   Plus,
@@ -66,29 +67,31 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.P && parsed.D && parsed.C && parsed.A) {
-          const mapSlot = (sp: Player | null) => {
-            if (!sp) return null;
-            const base = allPlayers.find(p => p.id === sp.id);
-            if (!base) return sp;
-            if (sp.isCustomPrice || base.isCustomPrice) {
-              const cust500 = sp.isCustomPrice ? (sp.estimatedPrice500 || sp.avgAuctionPrice500) : (base.estimatedPrice500 || base.avgAuctionPrice500);
-              return {
-                ...base,
-                estimatedPrice500: cust500,
-                avgAuctionPrice500: cust500,
-                isCustomPrice: true
-              };
-            }
-            return base;
+          // Il riaggancio passa dall'identità del giocatore, non dall'id: il
+          // listone cambia durante il mercato e gli slot devono restare fedeli
+          const mapRole = (role: Role, size: number): Array<Player | null> => {
+            const source: Array<Player | null> = Array.isArray(parsed[role]) ? parsed[role] : [];
+            return resolveStoredSlots(source, allPlayers, role, size).map((base, i) => {
+              const sp = source[i];
+              if (!base || !sp) return base;
+              // Il prezzo messo a mano dall'utente vince sempre sul listino
+              if (sp.isCustomPrice || base.isCustomPrice) {
+                const cust500 =
+                  (sp.isCustomPrice
+                    ? sp.estimatedPrice500 ?? sp.avgAuctionPrice500
+                    : base.estimatedPrice500 ?? base.avgAuctionPrice500) ?? 1;
+                return { ...base, estimatedPrice500: cust500, avgAuctionPrice500: cust500, isCustomPrice: true };
+              }
+              return base;
+            });
           };
 
-          const mappedSlots = {
-            P: parsed.P.map(mapSlot),
-            D: parsed.D.map(mapSlot),
-            C: parsed.C.map(mapSlot),
-            A: parsed.A.map(mapSlot)
-          };
-          setSelectedSlots(mappedSlots);
+          setSelectedSlots({
+            P: mapRole('P', 3),
+            D: mapRole('D', 8),
+            C: mapRole('C', 8),
+            A: mapRole('A', 6)
+          });
         }
       }
     } catch (e) {

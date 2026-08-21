@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Player, Role, LiveAuctionItem, GeneratedSquad } from '../types';
 import { calculateDynamicPrice, findAlternatives, getPlayerAuctionRange, getMaxBid, MarketValuation } from '../lib/optimizer';
+import { resolveStoredSlots } from '../lib/player-resolve';
 import { 
   Gavel, 
   CheckCircle2, 
@@ -54,11 +55,12 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.P && parsed.D && parsed.C && parsed.A) {
+          // Stesso riaggancio del costruttore: identità, non id posizionale
           return {
-            P: parsed.P.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null),
-            D: parsed.D.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null),
-            C: parsed.C.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null),
-            A: parsed.A.map((sp: Player | null) => sp ? allPlayers.find(p => p.id === sp.id) || sp : null),
+            P: resolveStoredSlots(parsed.P, allPlayers, 'P', 3),
+            D: resolveStoredSlots(parsed.D, allPlayers, 'D', 8),
+            C: resolveStoredSlots(parsed.C, allPlayers, 'C', 8),
+            A: resolveStoredSlots(parsed.A, allPlayers, 'A', 6),
           };
         }
       }

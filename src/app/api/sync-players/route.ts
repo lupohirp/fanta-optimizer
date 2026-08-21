@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { INITIAL_PLAYERS } from '@/data/players';
 import { Player, Role, HistoricalStats } from '@/types';
 import { getCurrentSeason, getPreviousSeason } from '@/lib/season';
-import { fetchMarketRows, attachMarketData, decodeEntities } from '@/lib/market-source';
+import { fetchMarketRows, attachMarketData } from '@/lib/market-source';
+import { decodeEntities, stablePlayerId } from '@/lib/text';
 import { marketPriceFor, marketRangeFor } from '@/lib/market';
 import historicalStatsMap from '@/data/historical_stats_2025_26.json';
 
@@ -98,6 +99,17 @@ function calibratePrice500(quotation: number, role: Role): number {
   }
 }
 
+/**
+ * Id stabile, con suffisso progressivo solo in caso di omonimia perfetta
+ * (stesso nome, stessa squadra, stesso ruolo).
+ */
+function makeId(season: string, name: string, team: string, role: Role, seen: Map<string, number>): string {
+  const base = stablePlayerId(season, name, team, role);
+  const used = seen.get(base) || 0;
+  seen.set(base, used + 1);
+  return used === 0 ? base : `${base}-${used + 1}`;
+}
+
 /** Fascia di mercato dedotta dal prezzo d'asta, con soglie diverse per ruolo */
 function tierFromPrice500(price500: number, role: Role): 1 | 2 | 3 | 4 | 5 {
   const cuts: Record<Role, number[]> = {
@@ -178,7 +190,8 @@ export async function GET(request: Request) {
 
       let match;
       const parsedPlayers: Player[] = [];
-      let idCounter = 1;
+      // Omonimi nella stessa squadra e ruolo: si distinguono con un suffisso
+      const idCounts = new Map<string, number>();
 
       while ((match = regex.exec(html)) !== null) {
         const name = decodeEntities(match[1]).trim();
@@ -254,7 +267,7 @@ export async function GET(request: Request) {
         const maxAuctionPrice500 = Math.max(minAuctionPrice500 + 1, Math.round(estimatedPrice500 * (1 + volatility)));
 
         parsedPlayers.push({
-          id: `p-${targetSeason}-${idCounter++}`,
+          id: makeId(targetSeason, name, team, role, idCounts),
           name,
           team,
           role,
