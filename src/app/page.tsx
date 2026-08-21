@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Player, LeagueSettings, GeneratedSquad } from '../types';
 import { INITIAL_PLAYERS } from '../data/players';
 import { optimizeSquad, findAlternatives, calculateDynamicPrice, buildStartingXI, getMarketValuations } from '../lib/optimizer';
+import { analyzeConsensus, findLowProfileAlternatives } from '../lib/consensus';
+import { computeTeamStrengths, upcomingFixtures, currentRound } from '../lib/calendar';
 import { formatSquadForWhatsApp, exportSquadToCSV } from '../lib/export';
 import { syncLivePlayers, getLastSyncInfo } from '../lib/sync';
 import { getCurrentSeason, formatSeasonLabel } from '../lib/season';
@@ -11,6 +13,8 @@ import { getCurrentSeason, formatSeasonLabel } from '../lib/season';
 import { Navbar, TabType } from '../components/Navbar';
 import { ConfigPanel } from '../components/ConfigPanel';
 import { BudgetBreakdown } from '../components/BudgetBreakdown';
+import { ConsensusPanel } from '../components/ConsensusPanel';
+import { CalendarPanel } from '../components/CalendarPanel';
 import { PitchView } from '../components/PitchView';
 import { SquadTable } from '../components/SquadTable';
 import { LiveAuctionAssistant } from '../components/LiveAuctionAssistant';
@@ -118,6 +122,15 @@ export default function Home() {
   const marketValuations = useMemo(
     () => getMarketValuations(allPlayers, settings),
     [allPlayers, settings]
+  );
+
+  // Forza delle squadre dedotta dal mercato: serve a pesare il calendario
+  const teamStrengths = useMemo(() => computeTeamStrengths(allPlayers), [allPlayers]);
+
+  // Quanto la rosa coincide con quella verso cui converge il mercato
+  const consensusReport = useMemo(
+    () => analyzeConsensus(squad, allPlayers, settings, marketValuations),
+    [squad, allPlayers, settings, marketValuations]
   );
 
   const showToast = (msg: string) => {
@@ -627,6 +640,21 @@ export default function Home() {
               />
             )}
 
+            {/* Come parte il calendario della rosa */}
+            <CalendarPanel
+              squad={squad}
+              allPlayers={allPlayers}
+              settings={settings}
+              strengths={teamStrengths}
+              onSelectPlayer={(p) => setSelectedPlayerForModal(p)}
+            />
+
+            {/* Quanto la rosa somiglia a quella che comprano tutti */}
+            <ConsensusPanel
+              report={consensusReport}
+              onSelectPlayer={(p) => setSelectedPlayerForModal(p)}
+            />
+
             {/* Impostazioni: collassate, riepilogo a chip */}
             <div style={{ marginTop: '20px' }}>
               <button className="settings-toggle" onClick={() => setShowSettings(v => !v)}>
@@ -724,6 +752,20 @@ export default function Home() {
           }}
           onSavePlayer={handleSavePlayer}
           valuation={marketValuations.get(selectedPlayerForModal.id)}
+          lowProfileAlternatives={findLowProfileAlternatives(
+            selectedPlayerForModal,
+            allPlayers,
+            settings,
+            marketValuations,
+            squad.players.map(p => p.id)
+          )}
+          fixtures={upcomingFixtures(
+            selectedPlayerForModal.team,
+            selectedPlayerForModal.role,
+            teamStrengths,
+            currentRound(),
+            5
+          )}
         />
       )}
 

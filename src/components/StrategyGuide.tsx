@@ -108,6 +108,28 @@ export const StrategyGuide: React.FC = () => {
         </p>
       </div>
 
+      {/* Calendario e consenso */}
+      <div className="glass-card">
+        <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px' }}>Calendario e consenso</h3>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '10px' }}>
+          La difficoltà di ogni impegno non è messa a mano: la forza delle venti squadre si deduce
+          da quanto il mercato paga i loro giocatori, cioè dal giudizio di migliaia di aste vere.
+          Attacco e difesa contano separatamente, perché a un portiere interessa quanto segna
+          l&apos;avversario e a un attaccante quanto lo stesso avversario subisce. Il fattore campo
+          sposta la difficoltà di mezzo gradino.
+        </p>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '10px' }}>
+          Su 38 giornate il calendario si pareggia per tutti: guardarlo serve per l&apos;avvio, non
+          per decidere chi vale di più. Per questo il calendario non entra nel calcolo della rosa,
+          resta un&apos;informazione che leggi tu.
+        </p>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          Quello che conta davvero non è avere un giocatore con il calendario buono, ma non restare
+          mai senza: se i tuoi attaccanti titolari hanno tutti la partitaccia nella stessa giornata,
+          quella giornata la perdi. È il senso della copertura mostrata sotto la rosa.
+        </p>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
         {guideSections.map((sec, idx) => (
           <div key={idx} className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

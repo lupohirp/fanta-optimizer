@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { INITIAL_PLAYERS } from '@/data/players';
 import { Player, Role, HistoricalStats } from '@/types';
 import { getCurrentSeason, getPreviousSeason } from '@/lib/season';
-import { fetchMarketRows, attachMarketData } from '@/lib/market-source';
+import { fetchMarketRows, attachMarketData, decodeEntities } from '@/lib/market-source';
 import { marketPriceFor, marketRangeFor } from '@/lib/market';
 import historicalStatsMap from '@/data/historical_stats_2025_26.json';
 
@@ -181,9 +181,9 @@ export async function GET(request: Request) {
       let idCounter = 1;
 
       while ((match = regex.exec(html)) !== null) {
-        const name = match[1].trim();
+        const name = decodeEntities(match[1]).trim();
         const role = match[2].trim().toUpperCase() as Role;
-        const rawTeam = match[3].trim();
+        const rawTeam = decodeEntities(match[3]).trim();
         const team = teamMap[rawTeam] || rawTeam;
         const quotation = parseInt(match[4].trim()) || 1;
         const rawFvm = parseInt(match[5].trim()) || null;

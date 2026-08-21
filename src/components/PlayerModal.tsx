@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { Player } from '../types';
 import { calculateDynamicPrice, getPlayerAuctionRange, MarketValuation } from '../lib/optimizer';
 import { marketGridFor } from '../lib/market';
+import { ConsensusAlternative } from '../lib/consensus';
+import { Fixture, calendarVerdict } from '../lib/calendar';
+import { difficultyColor } from './CalendarPanel';
 import { 
   Pin, 
   PinOff, 
@@ -35,6 +38,8 @@ interface PlayerModalProps {
   onEditPlayer?: (player: Player) => void;
   onSavePlayer?: (player: Player) => void;
   valuation?: MarketValuation;
+  lowProfileAlternatives?: ConsensusAlternative[];
+  fixtures?: Fixture[];
 }
 
 export const PlayerModal: React.FC<PlayerModalProps> = ({
@@ -46,7 +51,9 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
   onTogglePin,
   onEditPlayer,
   onSavePlayer,
-  valuation
+  valuation,
+  lowProfileAlternatives,
+  fixtures
 }) => {
   if (!player) return null;
 
@@ -401,6 +408,65 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* Calendario: i prossimi impegni visti dal suo ruolo */}
+        {fixtures && fixtures.length > 0 && (
+          <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '9px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700 }}>Prossimi impegni</div>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {calendarVerdict(fixtures).label}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${fixtures.length}, 1fr)`, gap: '5px' }}>
+              {fixtures.map(f => {
+                const c = difficultyColor(f.difficulty);
+                return (
+                  <div
+                    key={f.round}
+                    title={`${f.round}ª giornata: ${f.home ? f.opponent + ' in casa' : 'in trasferta a ' + f.opponent}`}
+                    style={{
+                      background: c.bg,
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '6px 4px',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{f.round}ª</div>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 700, color: c.fg, fontFamily: 'var(--font-mono)' }}>
+                      {f.home ? '' : '@'}{f.opponent.slice(0, 3).toUpperCase()}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Alternative meno battute: stessa resa, senza guerra di rilanci */}
+        {lowProfileAlternatives && lowProfileAlternatives.length > 0 && (
+          <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: '16px' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '3px' }}>Se non vuoi la guerra</div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '9px' }}>
+              Stessa fascia di rendimento, ma quasi nessuno li sta comprando
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {lowProfileAlternatives.map(alt => (
+                <div key={alt.player.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span className={`role-badge ${alt.player.role}`}>{alt.player.role}</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.84rem' }}>{alt.player.name}</span>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{alt.player.team}</span>
+                  <span style={{ marginLeft: 'auto', display: 'flex', gap: '10px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{alt.ownership.toFixed(1).replace('.', ',')}% rose</span>
+                    <span>{alt.price} cr</span>
+                    {alt.saves > 0 && <span style={{ color: 'var(--accent-emerald-light)' }}>-{alt.saves}</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Historical Stats Section */}
         {history && (

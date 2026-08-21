@@ -863,7 +863,12 @@ export function findAlternatives(
       // Penalizza solo i giocatori più deboli del target; un piccolo bonus premia gli upgrade
       const downgrade = Math.max(0, targetPlayer.expectedPoints - p.expectedPoints);
       const upgrade = Math.max(0, p.expectedPoints - targetPlayer.expectedPoints);
-      const score = 100 - (priceDiff * 2) - (downgrade * 15) + Math.min(10, upgrade * 5);
+      // A parità di resa conviene il giocatore meno battuto: se lo cercano in
+      // pochi lo porti a casa al prezzo base invece che a fine guerra di rilanci
+      const targetOwnership = targetPlayer.market?.ownership ?? 0;
+      const ownership = p.market?.ownership ?? 0;
+      const crowdBonus = Math.max(-6, Math.min(6, (targetOwnership - ownership) * 0.4));
+      const score = 100 - (priceDiff * 2) - (downgrade * 15) + Math.min(10, upgrade * 5) + crowdBonus;
       return { player: p, score, price };
     })
     .filter(item => item.price >= minPrice && item.price <= maxPrice)
