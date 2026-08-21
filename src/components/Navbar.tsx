@@ -65,7 +65,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                background: isSyncing ? '#f59e0b' : '#10b981'
+                background: isSyncing ? 'var(--accent-gold)' : 'var(--accent-emerald)'
               }} />
               <span>{isSyncing ? 'Aggiornamento...' : lastSyncTime}</span>
               <RefreshCw size={10} className={isSyncing ? 'spin' : ''} style={{ marginLeft: '2px' }} />

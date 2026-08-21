@@ -324,8 +324,8 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
                   <tr 
                     key={p.id}
                     style={{ 
-                      borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
-                      background: isPinned ? 'rgba(245, 158, 11, 0.06)' : 'transparent',
+                      borderBottom: '1px solid var(--border-subtle)',
+                      background: isPinned ? 'var(--accent-gold-soft)' : 'transparent',
                       transition: 'background 0.15s'
                     }}
                   >
@@ -336,9 +336,9 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
                     <td style={{ padding: '12px 14px', fontWeight: 800 }}>
                       <span 
                         onClick={() => onSelectPlayer(p)}
-                        style={{ cursor: 'pointer', color: '#fff' }}
+                        style={{ cursor: 'pointer', color: 'var(--text-primary)' }}
                         onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-emerald-light)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = '#fff')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
                       >
                         {p.name}
                       </span>
@@ -350,8 +350,8 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
 
                     <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                       <span style={{ 
-                        background: isHighStarter ? 'rgba(16, 185, 129, 0.15)' : p.starterProbability >= 70 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                        color: isHighStarter ? 'var(--accent-emerald-light)' : p.starterProbability >= 70 ? '#fbbf24' : '#f87171',
+                        background: isHighStarter ? 'var(--accent-emerald-soft)' : p.starterProbability >= 70 ? 'var(--accent-gold-soft)' : 'var(--danger-soft)',
+                        color: isHighStarter ? 'var(--accent-emerald-light)' : p.starterProbability >= 70 ? 'var(--accent-gold)' : 'var(--danger)',
                         padding: '3px 8px',
                         borderRadius: 'var(--radius-sm)',
                         fontWeight: 800,
@@ -372,9 +372,9 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
                         border: '1px solid var(--border-subtle)', 
                         padding: '4px 10px', 
                         borderRadius: 'var(--radius-sm)',
-                        fontWeight: 800,
+                        fontWeight: 700,
                         fontFamily: 'var(--font-mono)',
-                        color: 'var(--accent-gold)'
+                        color: 'var(--text-primary)'
                       }}>
                         {price} cr
                       </span>
@@ -403,8 +403,8 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
                             padding: '2px 7px',
                             borderRadius: '4px',
                             fontWeight: 700,
-                            background: valuation.verdict === 'affare' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(248, 113, 113, 0.15)',
-                            color: valuation.verdict === 'affare' ? 'var(--accent-emerald-light)' : '#f87171'
+                            background: valuation.verdict === 'affare' ? 'var(--accent-emerald-soft)' : 'var(--danger-soft)',
+                            color: valuation.verdict === 'affare' ? 'var(--accent-emerald-light)' : 'var(--danger)'
                           }}
                         >
                           {valuation.verdict === 'affare' ? 'Affare' : 'Caro'}
@@ -424,12 +424,12 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
                     <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                         {p.isPenaltyTaker && (
-                          <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                          <span style={{ background: 'var(--danger-soft)', color: 'var(--danger)', fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
                             Rigorista
                           </span>
                         )}
                         {p.isFreeKickTaker && (
-                          <span style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                          <span style={{ background: 'var(--info-soft)', color: 'var(--info)', fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
                             Piazzati
                           </span>
                         )}
@@ -446,7 +446,7 @@ export const PlayerDatabase: React.FC<PlayerDatabaseProps> = ({
                             fontSize: '0.78rem',
                             gap: '5px',
                             background: isPinned ? 'var(--accent-gold)' : 'var(--bg-input)',
-                            color: isPinned ? '#0a0e17' : 'var(--text-primary)',
+                            color: isPinned ? 'var(--text-inverse)' : 'var(--text-primary)',
                             borderColor: isPinned ? 'var(--accent-gold)' : 'var(--border-subtle)'
                           }}
                           title={isPinned ? 'Sblocca dalla rosa' : 'Blocca nella rosa per la generazione'}

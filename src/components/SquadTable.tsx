@@ -96,7 +96,7 @@ export const SquadTable: React.FC<SquadTableProps> = ({
                         key={p.id}
                         style={{ 
                           borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
-                          background: isPinned ? 'rgba(245, 158, 11, 0.04)' : 'transparent',
+                          background: isPinned ? 'var(--accent-gold-soft)' : 'transparent',
                           transition: 'background 0.15s'
                         }}
                       >
@@ -108,9 +108,9 @@ export const SquadTable: React.FC<SquadTableProps> = ({
                             </span>
                             <span 
                               onClick={() => onSelectPlayer(p)}
-                              style={{ cursor: 'pointer', color: '#fff', textDecoration: 'underline text-decoration-color: transparent', transition: 'all 0.2s' }}
+                              style={{ cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline text-decoration-color: transparent', transition: 'all 0.2s' }}
                               onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-emerald-light)')}
-                              onMouseLeave={(e) => (e.currentTarget.style.color = '#fff')}
+                              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
                             >
                               {p.name}
                             </span>
@@ -157,12 +157,12 @@ export const SquadTable: React.FC<SquadTableProps> = ({
                         <td style={{ padding: '10px', textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
                             {p.isPenaltyTaker && (
-                              <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }} title="Rigorista principale o di scorta">
+                              <span style={{ background: 'var(--danger-soft)', color: 'var(--danger)', fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }} title="Rigorista principale o di scorta">
                                 Rigorista
                               </span>
                             )}
                             {p.isFreeKickTaker && (
-                              <span style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }} title="Tiratore piazzati / corner">
+                              <span style={{ background: 'var(--info-soft)', color: 'var(--info)', fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }} title="Tiratore piazzati / corner">
                                 Piazzati
                               </span>
                             )}

@@ -160,7 +160,7 @@ export const PitchView: React.FC<PitchViewProps> = ({
                       {p.name}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      {p.team}{p.isPenaltyTaker && <span style={{ color: '#f87171', fontWeight: 700 }}> · R</span>}
+                      {p.team}{p.isPenaltyTaker && <span style={{ color: 'var(--danger)', fontWeight: 700 }}> · R</span>}
                     </div>
                   </div>
                 </div>

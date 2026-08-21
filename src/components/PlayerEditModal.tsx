@@ -109,7 +109,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
               width: '36px', 
               height: '36px', 
               borderRadius: 'var(--radius-md)', 
-              background: 'rgba(16, 185, 129, 0.2)', 
+              background: 'var(--accent-emerald-soft)', 
               color: 'var(--accent-emerald-light)', 
               display: 'flex', 
               alignItems: 'center', 
@@ -387,7 +387,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                   onClose();
                 }}
                 className="btn-secondary"
-                style={{ color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.3)', gap: '6px' }}
+                style={{ color: 'var(--danger)', borderColor: 'var(--danger-border)', gap: '6px' }}
               >
                 <Trash2 size={15} />
                 <span>Elimina Giocatore</span>

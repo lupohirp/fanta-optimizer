@@ -26,12 +26,13 @@ interface CalendarPanelProps {
 const HORIZON = 5;
 const COVERAGE_HORIZON = 6;
 
-export function difficultyColor(d: number): { bg: string; fg: string } {
-  if (d <= 1) return { bg: 'rgba(16, 185, 129, 0.22)', fg: 'var(--accent-emerald-light)' };
-  if (d === 2) return { bg: 'rgba(16, 185, 129, 0.12)', fg: 'var(--accent-emerald-light)' };
-  if (d === 3) return { bg: 'var(--bg-card)', fg: 'var(--text-secondary)' };
-  if (d === 4) return { bg: 'rgba(245, 158, 11, 0.14)', fg: '#fbbf24' };
-  return { bg: 'rgba(248, 113, 113, 0.16)', fg: '#f87171' };
+/** Scala a cinque passi: dal verde pieno (partita agevole) al rosso (proibitiva) */
+export function difficultyColor(d: number): { bg: string; fg: string; border: string } {
+  if (d <= 1) return { bg: 'var(--accent-emerald)', fg: 'var(--text-inverse)', border: 'var(--accent-emerald)' };
+  if (d === 2) return { bg: 'var(--accent-emerald-soft)', fg: 'var(--accent-emerald)', border: 'var(--accent-emerald-border)' };
+  if (d === 3) return { bg: 'var(--bg-card-subtle)', fg: 'var(--text-secondary)', border: 'var(--border-subtle)' };
+  if (d === 4) return { bg: 'var(--accent-gold-soft)', fg: 'var(--accent-gold)', border: 'var(--accent-gold-border)' };
+  return { bg: 'var(--danger-soft)', fg: 'var(--danger)', border: 'var(--danger-border)' };
 }
 
 const ordinal = (n: number) => `${n}ª`;
@@ -91,7 +92,7 @@ export const CalendarPanel: React.FC<CalendarPanelProps> = ({
               style={{
                 background: c.bg,
                 color: c.fg,
-                border: '1px solid var(--border-subtle)',
+                border: `1px solid ${c.border}`,
                 borderRadius: '4px',
                 padding: '2px 5px',
                 fontSize: '0.66rem',

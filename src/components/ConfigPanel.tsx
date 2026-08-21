@@ -95,7 +95,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               }}
             >
               {availableSeasons.map(s => (
-                <option key={s} value={s} style={{ background: 'var(--bg-card)', color: '#fff' }}>
+                <option key={s} value={s} style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
                   Stagione {formatSeasonLabel(s)}{s === currentSeason ? ' (attuale)' : ''}
                 </option>
               ))}
@@ -107,11 +107,11 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               display: 'flex', 
               alignItems: 'center', 
               gap: '6px', 
-              background: 'rgba(245, 158, 11, 0.15)', 
-              border: '1px solid rgba(245, 158, 11, 0.3)',
+              background: 'var(--accent-gold-soft)', 
+              border: '1px solid var(--accent-gold-border)',
               padding: '4px 10px',
               borderRadius: 'var(--radius-full)',
-              color: '#fbbf24',
+              color: 'var(--accent-gold)',
               fontSize: '0.8rem',
               fontWeight: 600
             }}>
@@ -293,7 +293,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </summary>
         <div style={{
           marginTop: '10px',
-          background: 'rgba(255, 255, 255, 0.02)',
+          background: 'var(--bg-card-subtle)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-md)',
           padding: '12px 14px',
@@ -350,7 +350,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                 key={strat.id}
                 onClick={() => handleStrategyChange(strat.id)}
                 style={{
-                  background: isSelected ? 'rgba(16, 185, 129, 0.12)' : 'var(--bg-input)',
+                  background: isSelected ? 'var(--accent-emerald-soft)' : 'var(--bg-input)',
                   border: `1.5px solid ${isSelected ? 'var(--accent-emerald)' : 'var(--border-subtle)'}`,
                   borderRadius: 'var(--radius-md)',
                   padding: '12px',

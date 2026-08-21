@@ -665,7 +665,7 @@ export default function Home() {
                   <span className="chip">{settings.participants} squadre</span>
                   <span className="chip">{settings.targetFormation === 'auto' ? 'Modulo auto' : settings.targetFormation}</span>
                   {pinnedIds.length > 0 && (
-                    <span className="chip" style={{ color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.35)' }}>
+                    <span className="chip" style={{ color: 'var(--accent-gold)', borderColor: 'var(--accent-gold-border)' }}>
                       {pinnedIds.length} bloccati
                     </span>
                   )}
@@ -830,8 +830,8 @@ export default function Home() {
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ 
-                          background: 'rgba(245, 158, 11, 0.15)', 
-                          color: '#fbbf24', 
+                          background: 'var(--accent-gold-soft)', 
+                          color: 'var(--accent-gold)', 
                           fontWeight: 800, 
                           fontFamily: 'var(--font-mono)',
                           padding: '3px 8px',

@@ -75,9 +75,9 @@ export const SquadJudgeModal: React.FC<SquadJudgeModalProps> = ({
 
   const getGradeColor = (grade: number) => {
     if (grade >= 8.5) return 'var(--accent-emerald-light)';
-    if (grade >= 7.5) return '#60a5fa';
-    if (grade >= 6.5) return '#fbbf24';
-    return '#f87171';
+    if (grade >= 7.5) return 'var(--info)';
+    if (grade >= 6.5) return 'var(--accent-gold)';
+    return 'var(--danger)';
   };
 
   const roleLabels: Record<Role, { name: string; role: Role }> = {
@@ -97,13 +97,13 @@ export const SquadJudgeModal: React.FC<SquadJudgeModalProps> = ({
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
               <Trophy size={20} />
             </div>
             <div>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>Fanta-Pagelle & Giudizio Rosa</span>
-                <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.2)', color: 'var(--accent-emerald-light)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.72rem', background: 'var(--accent-emerald-soft)', color: 'var(--accent-emerald-light)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
                   {modelUsed || 'Gemini 3.5 AI'}
                 </span>
               </h2>
@@ -138,8 +138,8 @@ export const SquadJudgeModal: React.FC<SquadJudgeModalProps> = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* Big Rating Banner */}
             <div style={{ 
-              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(16, 185, 129, 0.12))', 
-              border: '1px solid rgba(245, 158, 11, 0.3)', 
+              background: 'var(--bg-card-subtle)', 
+              border: '1px solid var(--accent-gold-border)', 
               borderRadius: 'var(--radius-lg)', 
               padding: '18px 22px',
               display: 'flex',
@@ -159,7 +159,7 @@ export const SquadJudgeModal: React.FC<SquadJudgeModalProps> = ({
                   <span style={{ fontSize: '1.1rem', color: 'var(--text-muted)', fontWeight: 700 }}>
                     / 10
                   </span>
-                  <span style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', marginLeft: '6px' }}>
+                  <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginLeft: '6px' }}>
                     {evaluation.titleBadge}
                   </span>
                 </div>
@@ -227,7 +227,7 @@ export const SquadJudgeModal: React.FC<SquadJudgeModalProps> = ({
             {/* Strengths & Weaknesses 2-Columns */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
               {/* Strengths */}
-              <div style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: 'var(--radius-md)', padding: '14px' }}>
+              <div style={{ background: 'var(--accent-emerald-soft)', border: '1px solid var(--accent-emerald-border)', borderRadius: 'var(--radius-md)', padding: '14px' }}>
                 <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--accent-emerald-light)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
                   <CheckCircle2 size={16} />
                   <span>Punti di Forza</span>
@@ -242,8 +242,8 @@ export const SquadJudgeModal: React.FC<SquadJudgeModalProps> = ({
               </div>
 
               {/* Weaknesses */}
-              <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 'var(--radius-md)', padding: '14px' }}>
-                <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#f87171', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+              <div style={{ background: 'var(--danger-soft)', border: '1px solid var(--danger-border)', borderRadius: 'var(--radius-md)', padding: '14px' }}>
+                <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
                   <AlertTriangle size={16} />
                   <span>Aree di Attenzione / Rischi</span>
                 </h4>
@@ -258,7 +258,7 @@ export const SquadJudgeModal: React.FC<SquadJudgeModalProps> = ({
             </div>
 
             {/* Auction Tip Box */}
-            <div style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: 'var(--radius-md)', padding: '14px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <div style={{ background: 'var(--accent-gold-soft)', border: '1px solid var(--accent-gold-border)', borderRadius: 'var(--radius-md)', padding: '14px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
               <Lightbulb size={20} style={{ color: 'var(--accent-gold)', flexShrink: 0, marginTop: '2px' }} />
               <div>
                 <strong style={{ fontSize: '0.88rem', color: 'var(--accent-gold)', display: 'block', marginBottom: '2px' }}>

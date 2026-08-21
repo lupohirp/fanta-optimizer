@@ -494,7 +494,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span>Costruttore</span>
-              <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.2)', color: 'var(--accent-emerald-light)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.72rem', background: 'var(--accent-emerald-soft)', color: 'var(--accent-emerald-light)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
                 Salvata in automatico
               </span>
             </h2>
@@ -539,7 +539,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
               <button
                 onClick={handleApplyToMain}
                 className="btn-primary"
-                style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px', background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px', background: 'var(--accent-emerald)' }}
               >
                 <ArrowRight size={15} />
                 <span>Porta sul Campo</span>
@@ -611,8 +611,8 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
         {/* Gemini AI Tactical Review Alert */}
         {aiTacticalReview && (
           <div style={{ 
-            background: 'rgba(16, 185, 129, 0.08)', 
-            border: '1px solid rgba(16, 185, 129, 0.3)', 
+            background: 'var(--accent-emerald-soft)', 
+            border: '1px solid var(--accent-emerald-border)', 
             borderRadius: 'var(--radius-md)', 
             padding: '12px 14px', 
             marginBottom: '16px',
@@ -650,10 +650,10 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', marginBottom: '16px' }}>
           <div className="stat-widget" style={{ padding: '12px' }}>
             <span className="stat-widget-label">Spesa</span>
-            <span className="stat-widget-value" style={{ color: totalSpent > totalBudget ? '#ef4444' : 'var(--accent-gold)' }}>
+            <span className="stat-widget-value" style={{ color: totalSpent > totalBudget ? 'var(--danger)' : 'var(--accent-gold)' }}>
               {totalSpent} <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>/ {totalBudget} cr</span>
             </span>
-            <span style={{ fontSize: '0.72rem', color: remainingBudget <= 0 ? '#ef4444' : 'var(--accent-emerald-light)' }}>
+            <span style={{ fontSize: '0.72rem', color: remainingBudget <= 0 ? 'var(--danger)' : 'var(--accent-emerald-light)' }}>
               {remainingBudget} cr rimasti
             </span>
           </div>
@@ -703,7 +703,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                 {selectedSlots[role].filter(Boolean).length}/{selectedSlots[role].length}
               </span>
               {role === 'P' && (
-                <span style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', background: 'rgba(245, 158, 11, 0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', background: 'var(--accent-gold-soft)', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--accent-gold-border)' }}>
                   blocco stessa squadra
                 </span>
               )}
@@ -723,7 +723,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                     key={`${role}-${idx}`}
                     style={{
                       background: 'var(--bg-input)',
-                      border: player.isCustomPrice ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-subtle)',
+                      border: player.isCustomPrice ? '1px solid var(--accent-gold-border)' : '1px solid var(--border-subtle)',
                       borderRadius: 'var(--radius-md)',
                       padding: '10px 12px',
                       display: 'flex',
@@ -739,7 +739,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                       <div style={{ minWidth: 0 }}>
                         <div 
                           onClick={() => onSelectPlayerModal(player)}
-                          style={{ fontWeight: 800, fontSize: '0.9rem', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                          style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
                           title={`${player.name} - Clicca per scheda o prezzo custom`}
                         >
                           {player.name}
@@ -748,7 +748,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                           <span>{player.team}</span>
                           <span>•</span>
                           <span style={{ 
-                            color: player.expectedPoints >= 7.0 ? 'var(--accent-emerald-light)' : player.expectedPoints >= 6.3 ? '#fff' : 'var(--text-secondary)', 
+                            color: player.expectedPoints >= 7.0 ? 'var(--accent-emerald-light)' : player.expectedPoints >= 6.3 ? 'var(--text-primary)' : 'var(--text-secondary)', 
                             fontWeight: 800, 
                             fontFamily: 'var(--font-mono)' 
                           }}>
@@ -759,7 +759,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                             {player.starterProbability}% Tit.
                           </span>
                           {player.isPenaltyTaker && (
-                            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#f87171', background: 'rgba(239, 68, 68, 0.15)', padding: '1px 5px', borderRadius: '4px' }} title="Rigorista">
+                            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--danger)', background: 'var(--danger-soft)', padding: '1px 5px', borderRadius: '4px' }} title="Rigorista">
                               R
                             </span>
                           )}
@@ -817,7 +817,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                     setSearchQuery('');
                   }}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.02)',
+                    background: 'var(--bg-card-subtle)',
                     border: '1.5px dashed var(--border-subtle)',
                     borderRadius: 'var(--radius-md)',
                     padding: '12px',
@@ -890,7 +890,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                       }}
                     >
                       <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#fff' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--text-primary)' }}>
                           Tris {block.team}
                         </div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
@@ -1005,7 +1005,7 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.borderColor = 'var(--accent-emerald)';
-                        e.currentTarget.style.background = 'rgba(16, 185, 129, 0.08)';
+                        e.currentTarget.style.background = 'var(--accent-emerald-soft)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.borderColor = 'var(--border-subtle)';
@@ -1014,19 +1014,19 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                     >
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#fff' }}>
+                          <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
                             {player.name}
                           </span>
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
                             ({player.team})
                           </span>
                           {player.isCustomPrice && (
-                            <span style={{ fontSize: '0.65rem', background: 'rgba(245, 158, 11, 0.2)', color: 'var(--accent-gold)', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>
+                            <span style={{ fontSize: '0.65rem', background: 'var(--accent-gold-soft)', color: 'var(--accent-gold)', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>
                               Prezzo custom
                             </span>
                           )}
                           {isHighStarter && (
-                            <span style={{ fontSize: '0.68rem', background: 'rgba(16, 185, 129, 0.2)', color: 'var(--accent-emerald-light)', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                            <span style={{ fontSize: '0.68rem', background: 'var(--accent-emerald-soft)', color: 'var(--accent-emerald-light)', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
                               Titolare
                             </span>
                           )}
@@ -1034,8 +1034,8 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
 
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ 
-                            background: 'rgba(255, 255, 255, 0.06)', 
-                            color: player.expectedPoints >= 7.0 ? 'var(--accent-emerald-light)' : '#fff', 
+                            background: 'var(--bg-card-subtle)', 
+                            color: player.expectedPoints >= 7.0 ? 'var(--accent-emerald-light)' : 'var(--text-primary)', 
                             padding: '1px 6px', 
                             borderRadius: '4px', 
                             fontWeight: 800, 
@@ -1045,17 +1045,17 @@ export const CustomSquadBuilder: React.FC<CustomSquadBuilderProps> = ({
                           </span>
 
                           <span>
-                            Titolarità: <strong style={{ color: isHighStarter ? 'var(--accent-emerald-light)' : player.starterProbability >= 70 ? '#fbbf24' : '#ef4444' }}>{player.starterProbability}%</strong>
+                            Titolarità: <strong style={{ color: isHighStarter ? 'var(--accent-emerald-light)' : player.starterProbability >= 70 ? 'var(--accent-gold)' : 'var(--danger)' }}>{player.starterProbability}%</strong>
                           </span>
 
-                          {player.isPenaltyTaker && <span style={{ color: '#f87171', fontWeight: 700 }}>Rigorista</span>}
+                          {player.isPenaltyTaker && <span style={{ color: 'var(--danger)', fontWeight: 700 }}>Rigorista</span>}
                         </div>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ 
-                          background: isAffordable ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)', 
-                          color: isAffordable ? '#fbbf24' : '#f87171', 
+                          background: isAffordable ? 'var(--accent-gold-soft)' : 'var(--danger-soft)', 
+                          color: isAffordable ? 'var(--accent-gold)' : 'var(--danger)', 
                           fontWeight: 800, 
                           fontFamily: 'var(--font-mono)',
                           padding: '3px 10px',

@@ -222,7 +222,7 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Assistente Asta Live</h2>
-              <span style={{ fontSize: '0.72rem', background: 'rgba(245, 158, 11, 0.2)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.72rem', background: 'var(--accent-gold-soft)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
                 Live Tracker
               </span>
             </div>
@@ -242,7 +242,7 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
                   fontSize: '0.8rem',
                   fontWeight: 700,
                   background: squadSource === 'custom' ? 'var(--accent-gold)' : 'transparent',
-                  color: squadSource === 'custom' ? '#0a0e17' : 'var(--text-secondary)',
+                  color: squadSource === 'custom' ? 'var(--text-inverse)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   border: 'none'
                 }}
@@ -289,7 +289,7 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
 
           <div className="stat-widget" style={{ padding: '12px' }}>
             <span className="stat-widget-label">Crediti Rimanenti</span>
-            <span className="stat-widget-value" style={{ color: remainingBudgetLive < 0 ? '#ef4444' : 'var(--accent-emerald-light)' }}>
+            <span className="stat-widget-value" style={{ color: remainingBudgetLive < 0 ? 'var(--danger)' : 'var(--accent-emerald-light)' }}>
               {remainingBudgetLive} <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>cr</span>
             </span>
           </div>
@@ -303,7 +303,7 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
 
           <div className="stat-widget" style={{ padding: '12px' }}>
             <span className="stat-widget-label">Saldo vs Target Previsto</span>
-            <span className="stat-widget-value" style={{ color: budgetVariance > 0 ? '#f87171' : budgetVariance < 0 ? 'var(--accent-emerald-light)' : 'var(--text-primary)' }}>
+            <span className="stat-widget-value" style={{ color: budgetVariance > 0 ? 'var(--danger)' : budgetVariance < 0 ? 'var(--accent-emerald-light)' : 'var(--text-primary)' }}>
               {budgetVariance > 0 ? `+${budgetVariance}` : budgetVariance} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>cr</span>
             </span>
           </div>
@@ -355,8 +355,8 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
                 gap: '12px',
-                borderLeft: isBought ? '4px solid var(--accent-emerald)' : isSkipped ? '4px solid #ef4444' : '4px solid var(--accent-gold)',
-                background: isBought ? 'rgba(16, 185, 129, 0.04)' : isSkipped ? 'rgba(239, 68, 68, 0.04)' : 'var(--bg-card)'
+                borderLeft: isBought ? '4px solid var(--accent-emerald)' : isSkipped ? '4px solid var(--danger)' : '4px solid var(--border-strong)',
+                background: isBought ? 'var(--accent-emerald-soft)' : isSkipped ? 'var(--danger-soft)' : 'var(--bg-card)'
               }}
             >
               {/* Left: Role + Player Info */}
@@ -370,7 +370,7 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span 
                         onClick={() => onSelectPlayer(p)}
-                        style={{ fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', color: '#fff' }}
+                        style={{ fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', color: 'var(--text-primary)' }}
                         title="Clicca per scheda scout"
                       >
                         {p.name}
@@ -379,11 +379,11 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
                         ({p.team})
                       </span>
                       {p.isCustomPrice && (
-                        <span style={{ fontSize: '0.65rem', background: 'rgba(245, 158, 11, 0.2)', color: 'var(--accent-gold)', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>
+                        <span style={{ fontSize: '0.65rem', background: 'var(--accent-gold-soft)', color: 'var(--accent-gold)', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>
                           Prezzo custom
                         </span>
                       )}
-                      {p.isPenaltyTaker && <span title="Rigorista" style={{ color: '#f87171', fontWeight: 800, fontSize: '0.7rem' }}>R</span>}
+                      {p.isPenaltyTaker && <span title="Rigorista" style={{ color: 'var(--danger)', fontWeight: 800, fontSize: '0.7rem' }}>R</span>}
                     </div>
                     <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       <span>Prezzo d&apos;asta: <strong style={{ color: 'var(--text-secondary)' }}>{item.targetBudget} cr</strong></span>
@@ -450,7 +450,7 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
                 {isBought && priceDiff !== 0 && (
                   <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
                     {priceDiff > 0 ? (
-                      <span style={{ color: '#f87171' }}>+{priceDiff} cr sopra target</span>
+                      <span style={{ color: 'var(--danger)' }}>+{priceDiff} cr sopra target</span>
                     ) : (
                       <span style={{ color: 'var(--accent-emerald-light)' }}>{priceDiff} cr risparmiati!</span>
                     )}
@@ -501,8 +501,8 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
                     fontSize: '0.78rem',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    background: isSkipped ? '#ef4444' : 'var(--bg-input)',
-                    color: isSkipped ? '#fff' : '#f87171',
+                    background: isSkipped ? 'var(--danger)' : 'var(--bg-input)',
+                    color: isSkipped ? '#fff' : 'var(--danger)',
                     border: '1px solid #ef4444'
                   }}
                   title="Segna come perso/andato ad altro fanta-allenatore"
@@ -601,8 +601,8 @@ export const LiveAuctionAssistant: React.FC<LiveAuctionAssistantProps> = ({
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ 
-                          background: 'rgba(245, 158, 11, 0.15)', 
-                          color: '#fbbf24', 
+                          background: 'var(--accent-gold-soft)', 
+                          color: 'var(--accent-gold)', 
                           fontWeight: 800, 
                           fontFamily: 'var(--font-mono)',
                           padding: '3px 8px',

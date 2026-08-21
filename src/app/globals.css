@@ -1,46 +1,64 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
 
 :root {
-  --bg-main: #111113;
-  --bg-card: #1a1a1d;
-  --bg-card-hover: #212124;
-  --bg-card-subtle: #232327;
-  --bg-input: #141416;
-  --border-subtle: rgba(255, 255, 255, 0.07);
-  --border-active: rgba(16, 185, 129, 0.4);
-  --border-focus: #10b981;
+  /* Superfici: carta calda, non bianco clinico */
+  --bg-main: #f4f3ef;
+  --bg-card: #ffffff;
+  --bg-card-hover: #faf9f6;
+  --bg-card-subtle: #f6f5f1;
+  --bg-input: #f6f5f1;
+  --border-subtle: #e4e2db;
+  --border-strong: #d4d1c8;
+  --border-active: #0d6e46;
+  --border-focus: #0d6e46;
 
-  --text-primary: #f4f4f5;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --text-inverse: #111113;
+  --text-primary: #15171a;
+  --text-secondary: #5a5f66;
+  --text-muted: #8b9097;
+  --text-inverse: #ffffff;
 
-  /* Primary Emerald Turf */
-  --accent-emerald: #10b981;
-  --accent-emerald-dark: #059669;
-  --accent-emerald-light: #34d399;
-  --accent-emerald-glow: rgba(16, 185, 129, 0.18);
+  /* Verde campo: unico accento della grafica */
+  --accent-emerald: #0d6e46;
+  --accent-emerald-dark: #0a5636;
+  --accent-emerald-light: #0d6e46;
+  --accent-emerald-glow: rgba(13, 110, 70, 0.10);
+  --accent-emerald-soft: #e7f2ec;
+  --accent-emerald-border: #c7e0d3;
 
-  /* Gold */
-  --accent-gold: #f59e0b;
-  --accent-gold-glow: rgba(245, 158, 11, 0.18);
+  /* Ambra: solo per segnalare attenzione */
+  --accent-gold: #a25a08;
+  --accent-gold-glow: rgba(162, 90, 8, 0.10);
+  --accent-gold-soft: #fbf0e2;
+  --accent-gold-border: #eedcbd;
 
-  /* Role Badges */
-  --role-p-bg: rgba(245, 158, 11, 0.15);
-  --role-p-border: rgba(245, 158, 11, 0.4);
-  --role-p-text: #fbbf24;
+  --danger: #b02a24;
+  --danger-soft: #fbeae9;
+  --danger-border: #f0d2d0;
 
-  --role-d-bg: rgba(16, 185, 129, 0.15);
-  --role-d-border: rgba(16, 185, 129, 0.4);
-  --role-d-text: #34d399;
+  --info: #1e4fd8;
+  --info-soft: #eaefff;
+  --info-border: #d3ddfb;
 
-  --role-c-bg: rgba(59, 130, 246, 0.15);
-  --role-c-border: rgba(59, 130, 246, 0.4);
-  --role-c-text: #60a5fa;
+  /* Ruoli */
+  --role-p-bg: #fbf0e2;
+  --role-p-border: #eedcbd;
+  --role-p-text: #a25a08;
 
-  --role-a-bg: rgba(239, 68, 68, 0.15);
-  --role-a-border: rgba(239, 68, 68, 0.4);
-  --role-a-text: #f87171;
+  --role-d-bg: #e7f2ec;
+  --role-d-border: #c7e0d3;
+  --role-d-text: #0d6e46;
+
+  --role-c-bg: #eaefff;
+  --role-c-border: #d3ddfb;
+  --role-c-text: #1e4fd8;
+
+  --role-a-bg: #fbeae9;
+  --role-a-border: #f0d2d0;
+  --role-a-text: #b02a24;
+
+  /* Campo da gioco */
+  --pitch-green: #17784a;
+  --pitch-line: rgba(255, 255, 255, 0.28);
 
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
@@ -52,9 +70,10 @@
   --radius-xl: 14px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.4);
+  /* Ombre appena percettibili: le card si staccano dalla carta, non levitano */
+  --shadow-sm: 0 1px 2px rgba(21, 23, 26, 0.04);
+  --shadow-md: 0 2px 8px rgba(21, 23, 26, 0.06);
+  --shadow-lg: 0 16px 40px rgba(21, 23, 26, 0.14);
   --shadow-emerald: none;
 }
 
@@ -212,13 +231,15 @@ input, select, textarea {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   padding: 20px;
+  box-shadow: var(--shadow-sm);
 }
 
 .glass-card h2,
 .glass-card h3,
 .stat-widget-value {
   font-family: var(--font-display);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
 }
 
 /* Role Badges */
@@ -294,7 +315,7 @@ input, select, textarea {
 
 .btn-secondary:hover {
   background: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: var(--border-strong);
 }
 
 .btn-icon {
@@ -317,7 +338,7 @@ input, select, textarea {
 
 .btn-icon.active {
   background: var(--accent-gold);
-  color: #0a0e17;
+  color: var(--text-inverse);
   border-color: var(--accent-gold);
 }
 
@@ -326,11 +347,11 @@ input, select, textarea {
   position: relative;
   background:
     repeating-linear-gradient(0deg,
-      rgba(255, 255, 255, 0.025) 0 52px,
-      rgba(0, 0, 0, 0.045) 52px 104px),
-    #1b5e38;
+      rgba(255, 255, 255, 0.035) 0 52px,
+      rgba(0, 0, 0, 0.05) 52px 104px),
+    var(--pitch-green);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(21, 23, 26, 0.08);
   padding: 30px 16px;
   min-height: 520px;
   display: flex;
@@ -352,7 +373,7 @@ input, select, textarea {
   transform: translate(-50%, -50%);
   width: 130px;
   height: 130px;
-  border: 2px solid rgba(255, 255, 255, 0.12);
+  border: 2px solid var(--pitch-line);
   border-radius: 50%;
 }
 
@@ -362,7 +383,7 @@ input, select, textarea {
   left: 0;
   right: 0;
   height: 2px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--pitch-line);
 }
 
 .pitch-penalty-top {
@@ -372,7 +393,7 @@ input, select, textarea {
   transform: translateX(-50%);
   width: 220px;
   height: 70px;
-  border: 2px solid rgba(255, 255, 255, 0.12);
+  border: 2px solid var(--pitch-line);
   border-top: none;
 }
 
@@ -383,7 +404,7 @@ input, select, textarea {
   transform: translateX(-50%);
   width: 220px;
   height: 70px;
-  border: 2px solid rgba(255, 255, 255, 0.12);
+  border: 2px solid var(--pitch-line);
   border-bottom: none;
 }
 
@@ -422,10 +443,10 @@ input, select, textarea {
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 0.92rem;
-  border: 2px solid rgba(255, 255, 255, 0.9);
+  border: 2px solid #ffffff;
   color: #ffffff;
   position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
 }
 
 .player-jersey.P { background: #d97706; }
@@ -458,8 +479,8 @@ input, select, textarea {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(6px);
+  background: rgba(21, 23, 26, 0.42);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -469,7 +490,7 @@ input, select, textarea {
 
 .modal-content {
   background: var(--bg-card);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   padding: 24px;
   max-width: 580px;
@@ -525,7 +546,7 @@ input, select, textarea {
 
 .hero-title {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   display: flex;
@@ -540,7 +561,8 @@ input, select, textarea {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
-  padding: 14px 6px;
+  box-shadow: var(--shadow-sm);
+  padding: 18px 6px;
   margin-bottom: 16px;
   overflow-x: auto;
 }
@@ -561,7 +583,7 @@ input, select, textarea {
 }
 
 .stat-strip-value {
-  font-size: 1.35rem;
+  font-size: 1.65rem;
   font-weight: 800;
   font-family: var(--font-display);
   letter-spacing: -0.02em;
@@ -570,9 +592,11 @@ input, select, textarea {
 }
 
 .stat-strip-label {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 500;
   color: var(--text-muted);
+  text-transform: lowercase;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
 
@@ -627,7 +651,7 @@ input, select, textarea {
     z-index: 90;
     max-width: none;
     border-top: 1px solid var(--border-subtle);
-    background: rgba(17, 17, 19, 0.96);
+    background: rgba(255, 255, 255, 0.94);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     justify-content: space-around;
@@ -653,6 +677,18 @@ input, select, textarea {
   .app-container {
     padding-bottom: 110px;
   }
+
+  .stat-strip-value {
+    font-size: 1.35rem;
+  }
+
+  .stat-strip-item {
+    padding: 0 11px;
+  }
+
+  .hero-title {
+    font-size: 1.5rem;
+  }
 }
 
 /* Spin animation for loading icons */
@@ -666,9 +702,9 @@ input, select, textarea {
 
 /* Toast / Banner */
 .notice-banner {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: var(--accent-emerald-light);
+  background: var(--accent-emerald-soft);
+  border: 1px solid var(--accent-emerald-border);
+  color: var(--accent-emerald);
   border-radius: var(--radius-md);
   padding: 12px 16px;
   display: flex;

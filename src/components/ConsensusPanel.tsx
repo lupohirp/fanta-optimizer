@@ -82,7 +82,7 @@ export const ConsensusPanel: React.FC<ConsensusPanelProps> = ({ report, onSelect
                 </span>
                 <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>{pick.player.team}</span>
                 <span style={{ marginLeft: 'auto', display: 'flex', gap: '10px', fontSize: '0.76rem', fontFamily: 'var(--font-mono)' }}>
-                  <span style={{ color: '#fbbf24' }}>{pct(pick.ownership)}% rose</span>
+                  <span style={{ color: 'var(--accent-gold)' }}>{pct(pick.ownership)}% rose</span>
                   <span style={{ color: 'var(--text-secondary)' }}>{pick.price} cr</span>
                 </span>
               </div>

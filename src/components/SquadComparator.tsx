@@ -60,8 +60,8 @@ export const SquadComparator: React.FC<SquadComparatorProps> = ({
             width: '36px',
             height: '36px',
             borderRadius: 'var(--radius-md)',
-            background: 'rgba(59, 130, 246, 0.15)',
-            color: '#60a5fa',
+            background: 'var(--info-soft)',
+            color: 'var(--info)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'

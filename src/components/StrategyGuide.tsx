@@ -38,7 +38,7 @@ export const StrategyGuide: React.FC = () => {
       `
     },
     {
-      icon: <Crosshair size={20} style={{ color: '#60a5fa' }} />,
+      icon: <Crosshair size={20} style={{ color: 'var(--info)' }} />,
       title: '3. La Regola dei Rigoristi',
       content: `
         I calci di rigore valgono +3 punti ciascuno. In un campionato di 38 giornate, un rigorista garantisce tra i 4 e gli 8 gol "extra" che possono ribaltare le partite.
@@ -47,7 +47,7 @@ export const StrategyGuide: React.FC = () => {
       `
     },
     {
-      icon: <AlertTriangle size={20} style={{ color: '#f87171' }} />,
+      icon: <AlertTriangle size={20} style={{ color: 'var(--danger)' }} />,
       title: '4. I 5 Errori Più Comuni all\'Asta',
       content: `
         **1. Fissarsi su un solo giocatore:** Se il prezzo del tuo pupillo supera del 30% la stima, lascialo andare e usa il "Piano B".
@@ -67,7 +67,7 @@ export const StrategyGuide: React.FC = () => {
             width: '36px', 
             height: '36px', 
             borderRadius: 'var(--radius-md)', 
-            background: 'rgba(16, 185, 129, 0.2)', 
+            background: 'var(--accent-emerald-soft)', 
             color: 'var(--accent-emerald-light)', 
             display: 'flex', 
             alignItems: 'center', 
@@ -101,7 +101,7 @@ export const StrategyGuide: React.FC = () => {
         </p>
         <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
           L&apos;etichetta <strong style={{ color: 'var(--accent-emerald-light)' }}>Affare</strong> o{' '}
-          <strong style={{ color: '#f87171' }}>Caro</strong> nasce dal confronto fra due classifiche:
+          <strong style={{ color: 'var(--danger)' }}>Caro</strong> nasce dal confronto fra due classifiche:
           quanto rende un giocatore rispetto agli altri del suo ruolo, e quanto il mercato paga chi
           occupa quella posizione. Se sei l&apos;ottavo attaccante per rendimento ma costi come il
           venticinquesimo, sei un affare.

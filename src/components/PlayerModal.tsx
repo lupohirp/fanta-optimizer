@@ -156,7 +156,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
                 <h3 style={{ fontSize: '1.3rem', fontWeight: 800 }}>{player.name}</h3>
                 <span className={`role-badge ${player.role}`}>{player.role}</span>
                 {player.isCustomPrice && (
-                  <span style={{ fontSize: '0.7rem', background: 'rgba(245, 158, 11, 0.2)', color: 'var(--accent-gold)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                  <span style={{ fontSize: '0.7rem', background: 'var(--accent-gold-soft)', color: 'var(--accent-gold)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
                     Prezzo custom
                   </span>
                 )}
@@ -186,65 +186,6 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           </div>
         </div>
 
-        {/* Custom Price Editor Box */}
-        <div style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: 'var(--radius-md)', padding: '14px', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-gold)' }}>
-              <Coins size={16} />
-              <span>Valore d'Asta Personalizzato ({totalBudget} cr):</span>
-            </div>
-            {player.isCustomPrice && (
-              <button
-                onClick={handleResetToDefaultPrice}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
-                title="Ripristina valore calcolato dall'algoritmo"
-              >
-                <RotateCcw size={12} />
-                <span>Ripristina Default</span>
-              </button>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ position: 'relative', width: '130px' }}>
-              <input
-                type="number"
-                min={1}
-                max={totalBudget}
-                value={customPriceInput}
-                onChange={(e) => setCustomPriceInput(Math.max(1, parseInt(e.target.value) || 1))}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg-input)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '8px 30px 8px 12px',
-                  color: 'var(--accent-gold)',
-                  fontWeight: 800,
-                  fontSize: '1.1rem',
-                  fontFamily: 'var(--font-mono)'
-                }}
-              />
-              <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 700 }}>
-                cr
-              </span>
-            </div>
-
-            <button
-              onClick={handleSaveCustomPrice}
-              className="btn-primary"
-              style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px', background: savedSuccess ? '#10b981' : undefined }}
-            >
-              {savedSuccess ? <Check size={16} /> : <Coins size={16} />}
-              <span>{savedSuccess ? 'Valore Salvato!' : 'Salva Valore Custom'}</span>
-            </button>
-
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-              ({((customPriceInput / totalBudget) * 100).toFixed(1)}% del budget)
-            </span>
-          </div>
-        </div>
-
         {/* Quick Highlights */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
           <div className="stat-widget" style={{ padding: '10px' }}>
@@ -263,7 +204,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
 
           <div className="stat-widget" style={{ padding: '10px' }}>
             <span className="stat-widget-label">Titolarità Attesa</span>
-            <span className="stat-widget-value" style={{ color: player.starterProbability >= 85 ? 'var(--accent-emerald-light)' : '#fbbf24' }}>
+            <span className="stat-widget-value" style={{ color: player.starterProbability >= 85 ? 'var(--accent-emerald-light)' : 'var(--accent-gold)' }}>
               {player.starterProbability}%
             </span>
           </div>
@@ -298,7 +239,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
 
             <div style={{ background: 'var(--bg-card)', padding: '8px', borderRadius: 'var(--radius-sm)' }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Se parte l&apos;asta</div>
-              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f87171', fontFamily: 'var(--font-mono)' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--danger)', fontFamily: 'var(--font-mono)' }}>
                 {auctionRange.max} cr
               </div>
             </div>
@@ -319,8 +260,8 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
                 borderRadius: 'var(--radius-sm)',
                 fontWeight: 700,
                 fontSize: '0.72rem',
-                background: valuation.verdict === 'affare' ? 'rgba(16, 185, 129, 0.14)' : 'rgba(248, 113, 113, 0.14)',
-                color: valuation.verdict === 'affare' ? 'var(--accent-emerald-light)' : '#f87171'
+                background: valuation.verdict === 'affare' ? 'var(--accent-emerald-soft)' : 'var(--danger-soft)',
+                color: valuation.verdict === 'affare' ? 'var(--accent-emerald-light)' : 'var(--danger)'
               }}>
                 {valuation.verdict === 'affare' ? 'Affare' : 'Sopravvalutato'}
               </span>
@@ -349,7 +290,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
                             ? 'Prezzo medio rilevato nelle aste di questo formato'
                             : 'Previsione ricavata dai formati con dati rilevati'}
                           style={{
-                            background: isYours ? 'rgba(16, 185, 129, 0.10)' : 'var(--bg-card)',
+                            background: isYours ? 'var(--accent-emerald-soft)' : 'var(--bg-card)',
                             border: '1px solid ' + (isYours ? 'var(--accent-emerald)' : 'var(--border-subtle)'),
                             borderRadius: 'var(--radius-sm)',
                             padding: '7px 6px',
@@ -398,7 +339,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
                 {typeof player.market.trend7d === 'number' && player.market.trend7d !== 0 && (
                   <span>
                     Ultimi 7 giorni{' '}
-                    <strong style={{ color: player.market.trend7d > 0 ? 'var(--accent-emerald-light)' : '#f87171' }}>
+                    <strong style={{ color: player.market.trend7d > 0 ? 'var(--accent-emerald-light)' : 'var(--danger)' }}>
                       {player.market.trend7d > 0 ? '+' : ''}
                       {player.market.trend7d.toString().replace('.', ',')} cr
                     </strong>
@@ -427,13 +368,13 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
                     title={`${f.round}ª giornata: ${f.home ? f.opponent + ' in casa' : 'in trasferta a ' + f.opponent}`}
                     style={{
                       background: c.bg,
-                      border: '1px solid var(--border-subtle)',
+                      border: `1px solid ${c.border}`,
                       borderRadius: 'var(--radius-sm)',
                       padding: '6px 4px',
                       textAlign: 'center'
                     }}
                   >
-                    <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{f.round}ª</div>
+                    <div style={{ fontSize: '0.62rem', color: c.fg, opacity: 0.75 }}>{f.round}ª</div>
                     <div style={{ fontSize: '0.76rem', fontWeight: 700, color: c.fg, fontFamily: 'var(--font-mono)' }}>
                       {f.home ? '' : '@'}{f.opponent.slice(0, 3).toUpperCase()}
                     </div>
@@ -500,16 +441,75 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           </div>
         )}
 
+        {/* Custom Price Editor Box */}
+        <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '14px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+              <Coins size={15} style={{ color: 'var(--text-muted)' }} />
+              <span>Imposta un prezzo tuo ({totalBudget} cr)</span>
+            </div>
+            {player.isCustomPrice && (
+              <button
+                onClick={handleResetToDefaultPrice}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                title="Ripristina valore calcolato dall'algoritmo"
+              >
+                <RotateCcw size={12} />
+                <span>Ripristina Default</span>
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ position: 'relative', width: '130px' }}>
+              <input
+                type="number"
+                min={1}
+                max={totalBudget}
+                value={customPriceInput}
+                onChange={(e) => setCustomPriceInput(Math.max(1, parseInt(e.target.value) || 1))}
+                style={{
+                  width: '100%',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '8px 30px 8px 12px',
+                  color: 'var(--accent-gold)',
+                  fontWeight: 800,
+                  fontSize: '1.1rem',
+                  fontFamily: 'var(--font-mono)'
+                }}
+              />
+              <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 700 }}>
+                cr
+              </span>
+            </div>
+
+            <button
+              onClick={handleSaveCustomPrice}
+              className="btn-primary"
+              style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px', background: savedSuccess ? 'var(--accent-emerald)' : undefined }}
+            >
+              {savedSuccess ? <Check size={16} /> : <Coins size={16} />}
+              <span>{savedSuccess ? 'Valore Salvato!' : 'Salva Valore Custom'}</span>
+            </button>
+
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              ({((customPriceInput / totalBudget) * 100).toFixed(1)}% del budget)
+            </span>
+          </div>
+        </div>
+
         {/* Expected Stats & Attributes */}
         <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
             {player.isPenaltyTaker && (
-              <span style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#f87171', fontSize: '0.75rem', padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
+              <span style={{ background: 'var(--danger-soft)', border: '1px solid var(--danger-border)', color: 'var(--danger)', fontSize: '0.75rem', padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
                 Rigorista
               </span>
             )}
             {player.isFreeKickTaker && (
-              <span style={{ background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.4)', color: '#60a5fa', fontSize: '0.75rem', padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
+              <span style={{ background: 'var(--info-soft)', border: '1px solid var(--info-border)', color: 'var(--info)', fontSize: '0.75rem', padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
                 Tiratore piazzati
               </span>
             )}
@@ -536,7 +536,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
             style={{
               flex: 1,
               background: isPinned ? 'var(--accent-gold)' : 'var(--bg-card-subtle)',
-              color: isPinned ? '#0a0e17' : 'var(--text-primary)',
+              color: isPinned ? 'var(--text-inverse)' : 'var(--text-primary)',
               borderColor: isPinned ? 'var(--accent-gold)' : 'var(--border-subtle)',
               fontWeight: 700
             }}
